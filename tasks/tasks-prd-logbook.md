@@ -40,17 +40,17 @@
   - [x] 2.2 Implement function to load configuration from a TOML file using TDD.
   - [x] 2.3 Implement function to save configuration to a TOML file using TDD.
   - [x] 2.4 Implement validation for configuration parameters using TDD.
-- [ ] 3.0 Daily Entry Creation and Management
+- [x] 3.0 Daily Entry Creation and Management
   - [x] 3.1 Implement function to create a new daily journal file based on the current date and naming convention using TDD.
   - [x] 3.2 Implement templating engine for daily notes, including dynamic date insertion using TDD.
   - [x] 3.3 Implement logic to ensure the first paragraph is the summary using TDD.
   - [x] 3.4 Implement logic to create the "LOG" chapter after the summary using TDD.
   - [x] 3.5 Implement `logbook log <text>` command to append entries to the "LOG" chapter with timestamps using TDD.
 - [ ] 4.0 AI Agent Integration for Summaries
-  - [ ] 4.1 Define an interface for AI agent interaction using TDD.
-  - [ ] 4.2 Implement a concrete AI agent (e.g., a placeholder or a simple local model integration) using TDD.
-  - [ ] 4.3 Implement logic to generate a summary using the AI agent if no summary exists using TDD.
-  - [ ] 4.4 Implement logic to prompt the user for a manual summary if no AI agent is configured and no summary exists using TDD.
+  - [x] 4.1 Define an interface for AI agent interaction using TDD.
+  - [x] 4.2 Implement a concrete AI agent (e.g., a placeholder or a simple local model integration) using TDD.
+  - [x] 4.3 Implement logic to generate a summary using the AI agent if no summary exists using TDD.
+  - [x] 4.4 Implement logic to prompt the user for a manual summary if no AI agent is configured and no summary exists using TDD.
 - [ ] 5.0 Review Functionality (Weekly, Monthly, Yearly)
   - [ ] 5.1 Implement `logbook review week [week number] [year]` command using TDD.
   - [ ] 5.2 Implement `logbook review month [month name] [year]` command using TDD.

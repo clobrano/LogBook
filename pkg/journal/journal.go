@@ -1,12 +1,15 @@
 package journal
 
 import (
+	"bufio"
 	"fmt"
+	"io"
 	"os"
 	"path/filepath"
 	"strings"
 	"time"
 
+	"github.com/clobrano/LogBook/pkg/ai"
 	"github.com/clobrano/LogBook/pkg/config"
 	"github.com/clobrano/LogBook/pkg/template"
 )
@@ -112,6 +115,71 @@ func AppendToLog(filePath, entry string, timestamp time.Time) error {
 	err = os.WriteFile(filePath, []byte(modifiedContent), 0644)
 	if err != nil {
 		return fmt.Errorf("failed to write to journal file: %w", err)
+	}
+
+	return nil
+}
+
+// GenerateSummaryIfMissing reads a journal file, and if no summary exists, generates one using the provided AI summarizer.
+func GenerateSummaryIfMissing(filePath string, cfg *config.Config, summarizer ai.AISummarizer, aiPrompt string, reader io.Reader) error {
+	content, err := os.ReadFile(filePath)
+	if err != nil {
+		return fmt.Errorf("failed to read journal file: %w", err)
+	}
+
+	lines := strings.Split(string(content), "\n")
+
+	// Check if a summary already exists (first non-empty paragraph after the title)
+	if len(lines) > 1 && strings.TrimSpace(lines[1]) != "" && !strings.HasPrefix(strings.TrimSpace(lines[1]), "#") {
+		// Summary already exists, do nothing
+		return nil
+	}
+
+	var finalSummary string
+
+	if summarizer != nil {
+		fmt.Println("DEBUG: Entering AI path")
+		// Extract the content to be summarized (excluding the title and potential existing summary placeholder)
+		// For now, let's assume the entire content after the title needs summarizing.
+		// TODO: Refine content extraction to ignore "One-line note" section later.
+		contentToSummarize := strings.Join(lines, "\n")
+
+		// Generate summary using AI agent
+		generatedSummary, err := summarizer.GenerateSummary(contentToSummarize, aiPrompt)
+		if err != nil {
+			return fmt.Errorf("failed to generate summary with AI: %w", err)
+		}
+		finalSummary = generatedSummary
+	} else {
+		fmt.Println("DEBUG: Entering Manual path")
+		// Prompt user for manual summary
+		fmt.Print("No AI agent configured or provided. Please enter a manual summary (or leave blank to skip): ")
+		scanner := bufio.NewScanner(reader)
+		if scanner.Scan() {
+			finalSummary = scanner.Text()
+		} else {
+			return fmt.Errorf("failed to read manual summary: %w", scanner.Err())
+		}
+
+		if strings.TrimSpace(finalSummary) == "" {
+			fmt.Println("Manual summary skipped.")
+			return nil // User skipped manual summary
+		}
+	}
+
+	// Insert the generated summary after the title
+	var newContentBuilder strings.Builder
+	newContentBuilder.WriteString(lines[0]) // Title
+	newContentBuilder.WriteString("\n")
+	newContentBuilder.WriteString(strings.TrimSpace(finalSummary))
+	newContentBuilder.WriteString("\n\n") // Two newlines after the summary
+	newContentBuilder.WriteString(strings.Join(lines[2:], "\n")) // Rest of the content, skipping the initial empty line
+
+	modifiedContent := newContentBuilder.String()
+
+	err = os.WriteFile(filePath, []byte(modifiedContent), 0644)
+	if err != nil {
+		return fmt.Errorf("failed to write generated summary to file: %w", err)
 	}
 
 	return nil

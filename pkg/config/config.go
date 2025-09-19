@@ -6,6 +6,7 @@ import (
 	"path/filepath"
 
 	"github.com/BurntSushi/toml"
+	"github.com/clobrano/LogBook/pkg/ai"
 )
 
 // Config represents the application's configuration.
@@ -16,6 +17,7 @@ type Config struct {
 	AIEnabled       bool   `toml:"ai_enabled"`
 	AIPrompt        string `toml:"ai_prompt"`
 	OneLineTemplate string `toml:"one_line_template"`
+	AISummarizer    ai.AISummarizer `toml:"-"` // Not serialized to TOML
 }
 
 // DefaultConfig returns a new Config with default values.

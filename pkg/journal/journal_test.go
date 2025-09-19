@@ -1,16 +1,28 @@
 package journal
 
 import (
+	"errors"
+	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
 	"testing"
 	"time"
 
+	"github.com/clobrano/LogBook/pkg/ai"
 	"github.com/clobrano/LogBook/pkg/config"
 
 	"github.com/stretchr/testify/assert"
 )
+
+// ErrorReader is a mock io.Reader that always returns an error.
+type ErrorReader struct {
+	Err error
+}
+
+func (r *ErrorReader) Read(p []byte) (n int, err error) {
+	return 0, r.Err
+}
 
 func TestCreateDailyJournalFile(t *testing.T) {
 	// Setup a temporary journal directory
@@ -93,6 +105,7 @@ func TestCreateDailyJournalFile(t *testing.T) {
 
 	content, err = os.ReadFile(filePath)
 	assert.NoError(t, err)
+	fmt.Println("DEBUG: Content for Test case 8:", string(content))
 	assert.True(t, strings.HasPrefix(string(content), "This is the summary.\n\n"))
 }
 
@@ -139,4 +152,105 @@ func TestAppendToLog(t *testing.T) {
 	err = AppendToLog(noLogFilePath, "Should fail", appendDate)
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "LOG chapter not found in file")
+
+	// Test GenerateSummaryIfMissing
+	// Setup a temporary journal directory and file for summary tests
+	summaryTmpDir := t.TempDir()
+	cfg.JournalDir = summaryTmpDir
+	cfg.DailyTemplate = "# Daily Log\n\n## LOG\n"
+	date = time.Date(2025, time.November, 10, 0, 0, 0, 0, time.UTC)
+	summaryFilePath, err := CreateDailyJournalFile(cfg, date)
+	assert.NoError(t, err)
+
+	// Test case 1: No summary exists, should generate one using AI
+	mockAI := &ai.MockAISummarizer{Summary: "AI generated summary.", Err: nil}
+	aiPrompt := "Summarize this."
+
+	// Use a copy of cfg for this test case to avoid modifying the original
+	aiCfg := config.DefaultConfig()
+	aiCfg.AISummarizer = mockAI // Set the AI summarizer in the config
+
+	err = GenerateSummaryIfMissing(summaryFilePath, aiCfg, mockAI, aiPrompt, strings.NewReader(""))
+	assert.NoError(t, err)
+
+	content, err = os.ReadFile(summaryFilePath)
+	assert.NoError(t, err)
+	expectedContent := "# Daily Log\nAI generated summary.\n\n## LOG\n"
+	assert.Equal(t, expectedContent, string(content))
+
+	// Test case 2: Summary already exists, should not overwrite (AI path)
+	cfg.DailyTemplate = "# Daily Log\nExisting summary.\n\n## LOG\n"
+	date = time.Date(2025, time.November, 11, 0, 0, 0, 0, time.UTC)
+	summaryFilePath, err = CreateDailyJournalFile(cfg, date)
+	assert.NoError(t, err)
+
+	err = GenerateSummaryIfMissing(summaryFilePath, aiCfg, mockAI, aiPrompt, strings.NewReader(""))
+	assert.NoError(t, err)
+
+	content, err = os.ReadFile(summaryFilePath)
+	assert.NoError(t, err)
+	expectedContent = "# Daily Log\nExisting summary.\n\n## LOG\n"
+	assert.Equal(t, expectedContent, string(content))
+
+	// Test case 3: AI summarizer returns an error
+	cfg.DailyTemplate = "# Daily Log\n\n## LOG\n"
+	date = time.Date(2025, time.November, 12, 0, 0, 0, 0, time.UTC)
+	summaryFilePath, err = CreateDailyJournalFile(cfg, date)
+	assert.NoError(t, err)
+
+	mockAIWithError := &ai.MockAISummarizer{Summary: "", Err: errors.New("AI error during summary generation")}
+	aiCfgWithError := config.DefaultConfig()
+	aiCfgWithError.AISummarizer = mockAIWithError
+
+	err = GenerateSummaryIfMissing(summaryFilePath, aiCfgWithError, mockAIWithError, aiPrompt, strings.NewReader(""))
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "failed to generate summary with AI: AI error during summary generation")
+
+	// Test case 4: No AI agent configured, user provides manual summary
+	cfg.DailyTemplate = "# Daily Log\n\n## LOG\n"
+	date = time.Date(2025, time.November, 13, 0, 0, 0, 0, time.UTC)
+	summaryFilePath, err = CreateDailyJournalFile(cfg, date)
+	assert.NoError(t, err)
+
+	manualSummaryInput := "This is a manual summary.\n"
+
+	// No AI summarizer in config
+	noAICfg := config.DefaultConfig()
+	noAICfg.AISummarizer = nil
+
+	err = GenerateSummaryIfMissing(summaryFilePath, noAICfg, nil, aiPrompt, strings.NewReader(manualSummaryInput))
+	assert.NoError(t, err)
+
+	content, err = os.ReadFile(summaryFilePath)
+	assert.NoError(t, err)
+	expectedContent = "# Daily Log\nThis is a manual summary.\n\n## LOG\n"
+	assert.Equal(t, expectedContent, string(content))
+
+	// Test case 5: No AI agent configured, user skips manual summary
+	cfg.DailyTemplate = "# Daily Log\n\n## LOG\n"
+	date = time.Date(2025, time.November, 14, 0, 0, 0, 0, time.UTC)
+	summaryFilePath, err = CreateDailyJournalFile(cfg, date)
+	assert.NoError(t, err)
+
+	// Empty input to simulate skipping
+	err = GenerateSummaryIfMissing(summaryFilePath, noAICfg, nil, aiPrompt, strings.NewReader("\n"))
+	assert.NoError(t, err)
+
+	content, err = os.ReadFile(summaryFilePath)
+	assert.NoError(t, err)
+	// Content should remain unchanged (no summary added)
+	expectedContent = "# Daily Log\n\n## LOG\n"
+	assert.Equal(t, expectedContent, string(content))
+
+	// Test case 6: No AI agent configured, error reading manual summary
+	cfg.DailyTemplate = "# Daily Log\n\n## LOG\n"
+	date = time.Date(2025, time.November, 15, 0, 0, 0, 0, time.UTC)
+	summaryFilePath, err = CreateDailyJournalFile(cfg, date)
+	assert.NoError(t, err)
+
+	// Simulate an error during read
+	err = GenerateSummaryIfMissing(summaryFilePath, noAICfg, nil, aiPrompt, &ErrorReader{Err: errors.New("read error")})
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "failed to read manual summary: read error")
 }
+
