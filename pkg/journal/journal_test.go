@@ -3,6 +3,7 @@ package journal
 import (
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 	"time"
 
@@ -80,6 +81,19 @@ func TestCreateDailyJournalFile(t *testing.T) {
 	content, err := os.ReadFile(filePath)
 	assert.NoError(t, err)
 	assert.Equal(t, "# 2025-10-26 - My Daily Log\n\n[SUMMARY_PLACEHOLDER]\n\n## LOG\n", string(content))
+
+	// Test case 8: Ensure the first paragraph is the summary
+	cfg.DailyTemplate = "This is the summary.\n\n## LOG\n"
+	date = time.Date(2025, time.November, 1, 0, 0, 0, 0, time.UTC)
+	expectedFilePath = filepath.Join(tmpDir, "2025-11-01.md")
+
+	filePath, err = CreateDailyJournalFile(cfg, date)
+	assert.NoError(t, err)
+	assert.FileExists(t, filePath)
+
+	content, err = os.ReadFile(filePath)
+	assert.NoError(t, err)
+	assert.True(t, strings.HasPrefix(string(content), "This is the summary.\n\n"))
 }
 
 func TestAppendToLog(t *testing.T) {
