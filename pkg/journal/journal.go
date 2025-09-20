@@ -33,6 +33,7 @@ func CreateDailyJournalFile(cfg *config.Config, date time.Time) (string, error) 
 	}
 
 	// Render the file name using the template engine
+
 	data := template.TemplateData{Date: date}
 	fileName, err := template.Render(cfg.DailyFileName, data)
 	if err != nil {
@@ -172,7 +173,7 @@ func GenerateSummaryIfMissing(filePath string, cfg *config.Config, summarizer ai
 	newContentBuilder.WriteString(lines[0]) // Title
 	newContentBuilder.WriteString("\n")
 	newContentBuilder.WriteString(strings.TrimSpace(finalSummary))
-	newContentBuilder.WriteString("\n\n") // Two newlines after the summary
+	newContentBuilder.WriteString("\n\n")                        // Two newlines after the summary
 	newContentBuilder.WriteString(strings.Join(lines[2:], "\n")) // Rest of the content, skipping the initial empty line
 
 	modifiedContent := newContentBuilder.String()
@@ -184,3 +185,81 @@ func GenerateSummaryIfMissing(filePath string, cfg *config.Config, summarizer ai
 
 	return nil
 }
+
+// ListJournalFilesByPeriod returns a list of absolute paths to journal files within the specified date range.
+func ListJournalFilesByPeriod(cfg *config.Config, startDate, endDate time.Time) ([]string, error) {
+	if err := cfg.Validate(); err != nil {
+		return nil, fmt.Errorf("invalid configuration: %w", err)
+	}
+
+	journalDir := cfg.JournalDir
+	if !filepath.IsAbs(journalDir) {
+		return nil, fmt.Errorf("JournalDir must be an absolute path: %s", journalDir)
+	}
+
+	var files []string
+
+	// Iterate through the date range
+	for d := startDate; !d.After(endDate); d = d.AddDate(0, 0, 1) {
+		// Render the file name for the current date
+		data := template.TemplateData{Date: d}
+		fileName, err := template.Render(cfg.DailyFileName, data)
+		if err != nil {
+			return nil, fmt.Errorf("failed to render daily file name for date %s: %w", d.Format("2006-01-02"), err)
+		}
+
+		filePath := filepath.Join(journalDir, fileName)
+
+		// Check if the file exists
+		if _, err := os.Stat(filePath); err == nil {
+			files = append(files, filePath)
+		} else if !os.IsNotExist(err) {
+			return nil, fmt.Errorf("error checking file %s: %w", filePath, err)
+		}
+	}
+
+	return files, nil
+}
+
+// ExtractSummary reads a journal file and returns its first paragraph as the summary.
+func ExtractSummary(filePath string) (string, error) {
+	content, err := os.ReadFile(filePath)
+	if err != nil {
+		return "", fmt.Errorf("failed to read journal file %s: %w", filePath, err)
+	}
+
+	lines := strings.Split(string(content), "\n")
+
+	// The first paragraph after the title and before the "LOG" chapter is considered the summary.
+	var summaryLines []string
+	readingSummary := false
+
+	for i := 1; i < len(lines); i++ {
+		trimmedLine := strings.TrimSpace(lines[i])
+
+		if strings.HasPrefix(trimmedLine, "## LOG") {
+			break // Reached the LOG chapter, stop reading summary
+		}
+
+		if trimmedLine == "" {
+			if readingSummary { // If we were reading summary and hit an empty line, the paragraph ends
+				break
+			}
+			continue // Skip empty lines before the summary starts
+		}
+
+		if !readingSummary && strings.HasPrefix(trimmedLine, "#") {
+			continue // Skip any sub-headings before the actual summary paragraph
+		}
+
+		readingSummary = true
+		summaryLines = append(summaryLines, trimmedLine)
+	}
+
+	if len(summaryLines) > 0 {
+		return strings.Join(summaryLines, " "), nil
+	}
+
+	return "", nil // No summary found
+}
+

@@ -11,6 +11,7 @@ import (
 
 	"github.com/clobrano/LogBook/pkg/ai"
 	"github.com/clobrano/LogBook/pkg/config"
+	"github.com/clobrano/LogBook/pkg/template"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -252,5 +253,149 @@ func TestAppendToLog(t *testing.T) {
 	err = GenerateSummaryIfMissing(summaryFilePath, noAICfg, nil, aiPrompt, &ErrorReader{Err: errors.New("read error")})
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "failed to read manual summary: read error")
+}
+
+func TestListJournalFilesByPeriod(t *testing.T) {
+	// Setup a temporary journal directory
+	tmpDir := t.TempDir()
+
+	cfg := config.DefaultConfig()
+	cfg.JournalDir = tmpDir
+	cfg.DailyFileName = "{{.Date | formatDate \"2006-01-02\"}}.md"
+
+	// Create some dummy journal files
+	createDummyFile := func(date time.Time) string {
+		data := template.TemplateData{Date: date}
+		fileName, _ := template.Render(cfg.DailyFileName, data)
+		filePath := filepath.Join(tmpDir, fileName)
+		os.WriteFile(filePath, []byte("dummy content"), 0644)
+		return filePath
+	}
+
+	file2025_01_01 := createDummyFile(time.Date(2025, time.January, 1, 0, 0, 0, 0, time.UTC))
+	file2025_01_02 := createDummyFile(time.Date(2025, time.January, 2, 0, 0, 0, 0, time.UTC))
+	file2025_01_03 := createDummyFile(time.Date(2025, time.January, 3, 0, 0, 0, 0, time.UTC))
+	file2025_01_05 := createDummyFile(time.Date(2025, time.January, 5, 0, 0, 0, 0, time.UTC))
+	file2025_02_01 := createDummyFile(time.Date(2025, time.February, 1, 0, 0, 0, 0, time.UTC))
+
+	// Test case 1: Full range
+	startDate := time.Date(2025, time.January, 1, 0, 0, 0, 0, time.UTC)
+	endDate := time.Date(2025, time.January, 5, 0, 0, 0, 0, time.UTC)
+	expectedFiles := []string{file2025_01_01, file2025_01_02, file2025_01_03, file2025_01_05}
+
+	files, err := ListJournalFilesByPeriod(cfg, startDate, endDate)
+	assert.NoError(t, err)
+	assert.ElementsMatch(t, expectedFiles, files)
+
+	// Test case 2: Partial range
+	startDate = time.Date(2025, time.January, 2, 0, 0, 0, 0, time.UTC)
+	endDate = time.Date(2025, time.January, 3, 0, 0, 0, 0, time.UTC)
+	expectedFiles = []string{file2025_01_02, file2025_01_03}
+
+	files, err = ListJournalFilesByPeriod(cfg, startDate, endDate)
+	assert.NoError(t, err)
+	assert.ElementsMatch(t, expectedFiles, files)
+
+	// Test case 3: Single day
+	startDate = time.Date(2025, time.January, 1, 0, 0, 0, 0, time.UTC)
+	endDate = time.Date(2025, time.January, 1, 0, 0, 0, 0, time.UTC)
+	expectedFiles = []string{file2025_01_01}
+
+	files, err = ListJournalFilesByPeriod(cfg, startDate, endDate)
+	assert.NoError(t, err)
+	assert.ElementsMatch(t, expectedFiles, files)
+
+	// Test case 4: No files in range
+	startDate = time.Date(2025, time.January, 4, 0, 0, 0, 0, time.UTC)
+	endDate = time.Date(2025, time.January, 4, 0, 0, 0, 0, time.UTC)
+	expectedFiles = []string{}
+
+	files, err = ListJournalFilesByPeriod(cfg, startDate, endDate)
+	assert.NoError(t, err)
+	assert.Empty(t, files)
+
+	// Test case 5: Range extends beyond existing files
+	startDate = time.Date(2025, time.January, 1, 0, 0, 0, 0, time.UTC)
+	endDate = time.Date(2025, time.March, 1, 0, 0, 0, 0, time.UTC)
+	expectedFiles = []string{file2025_01_01, file2025_01_02, file2025_01_03, file2025_01_05, file2025_02_01}
+
+	files, err = ListJournalFilesByPeriod(cfg, startDate, endDate)
+	assert.NoError(t, err)
+	assert.ElementsMatch(t, expectedFiles, files)
+
+	// Test case 6: Invalid configuration (empty JournalDir)
+	invalidCfg := config.DefaultConfig()
+	invalidCfg.JournalDir = ""
+	files, err = ListJournalFilesByPeriod(invalidCfg, startDate, endDate)
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "invalid configuration: JournalDir cannot be empty")
+
+	// Test case 7: Non-absolute JournalDir
+	invalidCfg = config.DefaultConfig()
+	invalidCfg.JournalDir = "./relative/path"
+	files, err = ListJournalFilesByPeriod(invalidCfg, startDate, endDate)
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "JournalDir must be an absolute path")
+}
+
+func TestExtractSummary(t *testing.T) {
+	// Setup a temporary directory
+	tmpDir := t.TempDir()
+
+	// Test case 1: File with a summary
+	filePath1 := filepath.Join(tmpDir, "file1.md")
+	content1 := "# Title\nSummary of the file.\n\n## LOG\nEntry 1"
+	err := os.WriteFile(filePath1, []byte(content1), 0644)
+	assert.NoError(t, err)
+
+	summary, err := ExtractSummary(filePath1)
+	assert.NoError(t, err)
+	assert.Equal(t, "Summary of the file.", summary)
+
+	// Test case 2: File with multiple empty lines after title before summary
+	filePath2 := filepath.Join(tmpDir, "file2.md")
+	content2 := "# Title\n\n\nSummary of the file 2.\n\n## LOG\nEntry 1"
+	err = os.WriteFile(filePath2, []byte(content2), 0644)
+	assert.NoError(t, err)
+
+	summary, err = ExtractSummary(filePath2)
+	assert.NoError(t, err)
+	assert.Equal(t, "Summary of the file 2.", summary)
+
+	// Test case 3: File without a summary
+	filePath3 := filepath.Join(tmpDir, "file3.md")
+	content3 := "# Title\n\n## LOG\nEntry 1"
+	err = os.WriteFile(filePath3, []byte(content3), 0644)
+	assert.NoError(t, err)
+
+	summary, err = ExtractSummary(filePath3)
+	assert.NoError(t, err)
+	assert.Empty(t, summary)
+
+	// Test case 4: Empty file
+	filePath4 := filepath.Join(tmpDir, "file4.md")
+	content4 := ""
+	err = os.WriteFile(filePath4, []byte(content4), 0644)
+	assert.NoError(t, err)
+
+	summary, err = ExtractSummary(filePath4)
+	assert.NoError(t, err)
+	assert.Empty(t, summary)
+
+	// Test case 5: File does not exist
+	filePath5 := filepath.Join(tmpDir, "nonexistent.md")
+	summary, err = ExtractSummary(filePath5)
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "failed to read journal file")
+
+	// Test case 6: Summary is a title (should be skipped)
+	filePath6 := filepath.Join(tmpDir, "file6.md")
+	content6 := "# Title\n## Another Title\nSummary after title.\n\n## LOG\nEntry 1"
+	err = os.WriteFile(filePath6, []byte(content6), 0644)
+	assert.NoError(t, err)
+
+	summary, err = ExtractSummary(filePath6)
+	assert.NoError(t, err)
+	assert.Equal(t, "Summary after title.", summary)
 }
 

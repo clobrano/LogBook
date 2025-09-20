@@ -46,18 +46,18 @@
   - [x] 3.3 Implement logic to ensure the first paragraph is the summary using TDD.
   - [x] 3.4 Implement logic to create the "LOG" chapter after the summary using TDD.
   - [x] 3.5 Implement `logbook log <text>` command to append entries to the "LOG" chapter with timestamps using TDD.
-- [ ] 4.0 AI Agent Integration for Summaries
+- [x] 4.0 AI Agent Integration for Summaries
   - [x] 4.1 Define an interface for AI agent interaction using TDD.
   - [x] 4.2 Implement a concrete AI agent (e.g., a placeholder or a simple local model integration) using TDD.
   - [x] 4.3 Implement logic to generate a summary using the AI agent if no summary exists using TDD.
   - [x] 4.4 Implement logic to prompt the user for a manual summary if no AI agent is configured and no summary exists using TDD.
 - [ ] 5.0 Review Functionality (Weekly, Monthly, Yearly)
-  - [ ] 5.1 Implement `logbook review week [week number] [year]` command using TDD.
-  - [ ] 5.2 Implement `logbook review month [month name] [year]` command using TDD.
-  - [ ] 5.3 Implement `logbook review year [year]` command using TDD.
-  - [ ] 5.4 Implement logic to identify relevant daily entries for each review period using TDD.
-  - [ ] 5.5 Implement logic to aggregate summaries of daily entries into a review file using TDD.
-  - [ ] 5.6 Implement logic to generate a summary for the review period (manual or AI-generated) using TDD.
+  - [x] 5.1 Implement `logbook review week [week number] [year]` command using TDD.
+  - [x] 5.2 Implement `logbook review month [month name] [year]` command using TDD.
+  - [x] 5.3 Implement `logbook review year [year]` command using TDD.
+  - [x] 5.4 Implement logic to identify relevant daily entries for each review period using TDD.
+  - [x] 5.5 Implement logic to aggregate summaries of daily entries into a review file using TDD.
+  - [x] 5.6 Implement logic to generate a summary for the review period (manual or AI-generated) using TDD.
 - [ ] 6.0 One-Line Note Feature
   - [ ] 6.1 Implement logic to retrieve summaries from past daily notes (1 week, 1 month, past years) using TDD.
   - [ ] 6.2 Implement logic to format and embed these summaries into the "One-line note" section of the current daily note using TDD.

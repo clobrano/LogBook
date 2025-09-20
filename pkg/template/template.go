@@ -10,6 +10,7 @@ import (
 // TemplateData holds the data available for templating.
 type TemplateData struct {
 	Date time.Time
+	Summary string
 	// Add other fields as needed for templating
 }
 
