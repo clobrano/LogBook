@@ -59,10 +59,10 @@
   - [x] 5.5 Implement logic to aggregate summaries of daily entries into a review file using TDD.
   - [x] 5.6 Implement logic to generate a summary for the review period (manual or AI-generated) using TDD.
 - [ ] 6.0 One-Line Note Feature
-  - [ ] 6.1 Implement logic to retrieve summaries from past daily notes (1 week, 1 month, past years) using TDD.
-  - [ ] 6.2 Implement logic to format and embed these summaries into the "One-line note" section of the current daily note using TDD.
-  - [ ] 6.3 Implement logic to display "missing" for notes that don't exist for specific past dates using TDD.
-  - [ ] 6.4 Ensure the "One-line note" section is ignored by the AI agent during summary generation for the main daily note using TDD.
+  - [x] 6.1 Implement logic to retrieve summaries from past daily notes (1 week, 1 month, 6 months, past years) using TDD.
+  - [x] 6.2 Implement logic to format and embed these summaries into the "One-line note" section of the current daily note using TDD.
+  - [x] 6.3 Implement logic to display "missing" for notes that don't exist for specific past dates using TDD.
+  - [x] 6.4 Ensure the "One-line note" section is ignored by the AI agent during summary generation for the main daily note using TDD.
 - [ ] 7.0 Error Handling and User Feedback
   - [ ] 7.1 Implement robust error handling for file operations, configuration, and AI interactions using TDD.
   - [ ] 7.2 Implement clear and concise user feedback messages (success, error, warnings) using TDD.

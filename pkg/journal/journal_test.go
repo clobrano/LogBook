@@ -34,6 +34,7 @@ func TestCreateDailyJournalFile(t *testing.T) {
 	cfg.DailyFileName = "{{.Date | formatDate \"2006-01-02\"}}.md"
 
 	// Test case 1: File does not exist, should create successfully
+
 	date := time.Date(2025, time.September, 18, 0, 0, 0, 0, time.UTC)
 	expectedFilePath := filepath.Join(tmpDir, "2025-09-18.md")
 
@@ -253,6 +254,27 @@ func TestAppendToLog(t *testing.T) {
 	err = GenerateSummaryIfMissing(summaryFilePath, noAICfg, nil, aiPrompt, &ErrorReader{Err: errors.New("read error")})
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "failed to read manual summary: read error")
+
+	// Test case 7: AI summary generation ignores "One-line note" section
+	cfg.DailyTemplate = "# Daily Log\n\n## LOG\n\n## One-line note\n- Past note: This is a past one-line note.\n"
+	date = time.Date(2025, time.November, 16, 0, 0, 0, 0, time.UTC)
+	summaryFilePath, err = CreateDailyJournalFile(cfg, date)
+	assert.NoError(t, err)
+
+	mockAI = &ai.MockAISummarizer{Summary: "AI generated summary without one-line note.", Err: nil}
+	aiCfg = config.DefaultConfig()
+	aiCfg.AISummarizer = mockAI
+
+	err = GenerateSummaryIfMissing(summaryFilePath, aiCfg, mockAI, aiPrompt, strings.NewReader(""))
+	assert.NoError(t, err)
+
+	var contentBytesForOneLineNoteTest []byte
+	contentBytesForOneLineNoteTest, err = os.ReadFile(summaryFilePath)
+	assert.NoError(t, err)
+	var contentForOneLineNoteTest string
+	contentForOneLineNoteTest = string(contentBytesForOneLineNoteTest)
+	expectedContentForOneLineNoteTest := "# Daily Log\nAI generated summary without one-line note.\n\n## LOG\n\n## One-line note\n- Past note: This is a past one-line note.\n"
+	assert.Equal(t, expectedContentForOneLineNoteTest, contentForOneLineNoteTest)
 }
 
 func TestListJournalFilesByPeriod(t *testing.T) {
@@ -385,8 +407,8 @@ func TestExtractSummary(t *testing.T) {
 	// Test case 5: File does not exist
 	filePath5 := filepath.Join(tmpDir, "nonexistent.md")
 	summary, err = ExtractSummary(filePath5)
-	assert.Error(t, err)
-	assert.Contains(t, err.Error(), "failed to read journal file")
+	assert.NoError(t, err) // Should not return error for non-existent file
+	assert.Empty(t, summary)
 
 	// Test case 6: Summary is a title (should be skipped)
 	filePath6 := filepath.Join(tmpDir, "file6.md")
@@ -397,5 +419,60 @@ func TestExtractSummary(t *testing.T) {
 	summary, err = ExtractSummary(filePath6)
 	assert.NoError(t, err)
 	assert.Equal(t, "Summary after title.", summary)
+}
+
+func TestEmbedOneLineNotes(t *testing.T) {
+	// Setup a temporary journal directory
+	tmpDir := t.TempDir()
+
+	cfg := config.DefaultConfig()
+	cfg.JournalDir = tmpDir
+	cfg.DailyFileName = "{{.Date | formatDate \"2006-01-02\"}}.md"
+	cfg.DailyTemplate = "# {{.Date | formatDate \"Jan 02 2006 Monday\"}}\n\n{{.Summary}}\n\n## LOG\n"
+
+	// Create a dummy daily journal file
+	date := time.Date(2025, time.September, 20, 0, 0, 0, 0, time.UTC)
+	data := template.TemplateData{Date: date, Summary: "Initial summary."}
+	fileName, _ := template.Render(cfg.DailyFileName, data)
+	filePath := filepath.Join(tmpDir, fileName)
+	content, _ := template.Render(cfg.DailyTemplate, data)
+	initialContent := content + "\n## One-line note\n\n"
+	os.WriteFile(filePath, []byte(initialContent), 0644)
+
+	// Sample summaries to embed
+	summaries := map[string]string{
+		"1_week_ago":   "Summary from 1 week ago.",
+		"1_month_ago":  "Summary from 1 month ago.",
+		"6_months_ago": "Summary from 6 months ago.",
+		"1_year_ago":   "Summary from 1 year ago.",
+		"2_years_ago":  "Summary from 2 years ago.",
+	}
+
+	err := EmbedOneLineNotes(filePath, summaries)
+	assert.NoError(t, err)
+
+	// Read the updated file content
+	updatedContentBytes, err := os.ReadFile(filePath)
+	assert.NoError(t, err)
+	updatedContent := string(updatedContentBytes)
+
+	expectedContent := strings.Join([]string{
+		"# Sep 20 2025 Saturday",
+		"",
+		"Initial summary.",
+		"",
+		"## LOG",
+		"",
+		"## One-line note",
+		"",
+		"- 1 week ago: Summary from 1 week ago.",
+		"- 1 month ago: Summary from 1 month ago.",
+		"- 6 months ago: Summary from 6 months ago.",
+		"- 1 year ago: Summary from 1 year ago.",
+		"- 2 years ago: Summary from 2 years ago.",
+		"",
+	}, "\n")
+
+	assert.Equal(t, expectedContent, updatedContent)
 }
 

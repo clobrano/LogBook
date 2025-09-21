@@ -140,10 +140,13 @@ func GenerateSummaryIfMissing(filePath string, cfg *config.Config, summarizer ai
 
 	if summarizer != nil {
 		fmt.Println("DEBUG: Entering AI path")
-		// Extract the content to be summarized (excluding the title and potential existing summary placeholder)
-		// For now, let's assume the entire content after the title needs summarizing.
-		// TODO: Refine content extraction to ignore "One-line note" section later.
+		// Extract the content to be summarized (excluding the title and "One-line note" section)
 		contentToSummarize := strings.Join(lines, "\n")
+		oneLineNoteSection := "## One-line note"
+		idx := strings.Index(contentToSummarize, oneLineNoteSection)
+		if idx != -1 {
+			contentToSummarize = contentToSummarize[:idx]
+		}
 
 		// Generate summary using AI agent
 		generatedSummary, err := summarizer.GenerateSummary(contentToSummarize, aiPrompt)
@@ -225,6 +228,9 @@ func ListJournalFilesByPeriod(cfg *config.Config, startDate, endDate time.Time) 
 func ExtractSummary(filePath string) (string, error) {
 	content, err := os.ReadFile(filePath)
 	if err != nil {
+		if os.IsNotExist(err) {
+			return "", nil // File does not exist, return empty summary and no error
+		}
 		return "", fmt.Errorf("failed to read journal file %s: %w", filePath, err)
 	}
 
@@ -261,5 +267,39 @@ func ExtractSummary(filePath string) (string, error) {
 	}
 
 	return "", nil // No summary found
+}
+
+// EmbedOneLineNotes embeds one-line summaries into the "One-line note" section of a daily note.
+func EmbedOneLineNotes(filePath string, summaries map[string]string) error {
+	contentBytes, err := os.ReadFile(filePath)
+	if err != nil {
+		return fmt.Errorf("failed to read file %s: %w", filePath, err)
+	}
+
+	content := string(contentBytes)
+	oneLineNoteSection := "## One-line note\n\n"
+
+	// Find the "One-line note" section
+	idx := strings.Index(content, oneLineNoteSection)
+	if idx == -1 {
+		return fmt.Errorf("\"One-line note\" section not found in file %s", filePath)
+	}
+
+	// Build the one-line notes content
+	var oneLineNotesBuilder strings.Builder
+	for key, summary := range summaries {
+		oneLineNotesBuilder.WriteString(fmt.Sprintf("- %s: %s\n", strings.ReplaceAll(key, "_", " "), summary))
+	}
+
+	// Insert the one-line notes after the "## One-line note" line and its immediate newline
+	insertionPoint := idx + len(oneLineNoteSection)
+	updatedContent := content[:insertionPoint] + oneLineNotesBuilder.String() + content[insertionPoint:]
+
+	err = os.WriteFile(filePath, []byte(updatedContent), 0644)
+	if err != nil {
+		return fmt.Errorf("failed to write updated content to %s: %w", filePath, err)
+	}
+
+	return nil
 }
 
