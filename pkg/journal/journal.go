@@ -17,20 +17,20 @@ import (
 )
 
 // CreateDailyJournalFile creates a new daily journal file based on the current date and configuration.
-func CreateDailyJournalFile(cfg *config.Config, date time.Time) (string, error) {
+func CreateDailyJournalFile(cfg *config.Config, date time.Time) (string, string, error) {
 	if err := cfg.Validate(); err != nil {
-		return "", fmt.Errorf("invalid configuration: %w", err)
+		return "", "", fmt.Errorf("invalid configuration: %w", err)
 	}
 
 	journalDir := cfg.JournalDir
 	if !filepath.IsAbs(journalDir) {
-		return "", fmt.Errorf("JournalDir must be an absolute path: %s", journalDir)
+		return "", "", fmt.Errorf("JournalDir must be an absolute path: %s", journalDir)
 	}
 
 	if _, err := os.Stat(journalDir); os.IsNotExist(err) {
 		// Create the journal directory if it doesn't exist
 		if err := os.MkdirAll(journalDir, 0755); err != nil {
-			return "", fmt.Errorf("failed to create journal directory: %w", err)
+			return "", "", fmt.Errorf("failed to create journal directory: %w", err)
 		}
 	}
 
@@ -39,38 +39,38 @@ func CreateDailyJournalFile(cfg *config.Config, date time.Time) (string, error) 
 	data := template.TemplateData{Date: date}
 	fileName, err := template.Render(cfg.DailyFileName, data)
 	if err != nil {
-		return "", fmt.Errorf("failed to render daily file name: %w", err)
+		return "", "", fmt.Errorf("failed to render daily file name: %w", err)
 	}
 
 	filePath := filepath.Join(journalDir, fileName)
 
 	// Check if file already exists
 	if _, err := os.Stat(filePath); err == nil {
-		return color.GreenString("Daily journal file already exists: %s", filePath), nil
+		return filePath, color.GreenString("Daily journal file already exists: %s", filePath), nil
 	}
 
 	file, err := os.Create(filePath)
 	if err != nil {
-		return "", fmt.Errorf("failed to create daily journal file: %w", err)
+		return "", "", fmt.Errorf("failed to create daily journal file: %w", err)
 	}
 	defer file.Close()
 
 	// Render the daily template and write to file
 	templateContent, err := template.Render(cfg.DailyTemplate, data)
 	if err != nil {
-		return "", fmt.Errorf("failed to render daily template: %w", err)
+		return "", "", fmt.Errorf("failed to render daily template: %w", err)
 	}
 
 	_, err = file.WriteString(templateContent)
 	if err != nil {
-		return "", fmt.Errorf("failed to write daily template to file: %w", err)
+		return "", "", fmt.Errorf("failed to write daily template to file: %w", err)
 	}
 
-	return color.GreenString("Daily journal file created: %s", filePath), nil
+	return filePath, color.GreenString("Daily journal file created: %s", filePath), nil
 }
 
 // AppendToLog appends a new entry to the "LOG" chapter of a daily journal file.
-func AppendToLog(filePath, entry string, timestamp time.Time) error {
+func AppendToLog(cfg *config.Config, filePath, entry string, timestamp time.Time) error {
 	content, err := os.ReadFile(filePath)
 	if err != nil {
 		return fmt.Errorf("failed to read journal file %s: %w", filePath, err)

@@ -15,6 +15,7 @@ type Config struct {
 	DailyFileName   string `toml:"daily_file_name"`
 	DailyTemplate   string `toml:"daily_template"`
 	AIEnabled       bool   `toml:"ai_enabled"`
+	AIBinary        string `toml:"ai_binary"`
 	AIPrompt        string `toml:"ai_prompt"`
 	OneLineTemplate string `toml:"one_line_template"`
 	AISummarizer    ai.AISummarizer `toml:"-"` // Not serialized to TOML
@@ -27,6 +28,7 @@ func DefaultConfig() *Config {
 		DailyFileName:   "{{.Date | formatDate \"2006-01-02\"}}.md",
 		DailyTemplate:   "# {{.Date | formatDate \"Jan 02 2006 Monday\"}}\n\n[SUMMARY_PLACEHOLDER]\n\n## LOG\n",
 		AIEnabled:       false,
+		AIBinary:        "", // Default to empty string, meaning no specific AI binary is configured
 		AIPrompt:        "Write a summary of the note at the given file. Use 1st person and a simple language. Use 200 characters or less",
 		OneLineTemplate: "{{.Date | formatDate \"2006-01-02\"}}: {{.Summary}}",
 	}
@@ -39,6 +41,11 @@ func LoadConfig(path string) (*Config, error) {
 	if err != nil {
 		return nil, fmt.Errorf("failed to decode config file %s: %w", path, err)
 	}
+
+	if cfg.AIEnabled {
+		cfg.AISummarizer = ai.NewAISummarizer(cfg.AIBinary)
+	}
+
 	return cfg, nil
 }
 
@@ -70,6 +77,9 @@ func (cfg *Config) Validate() error {
 	}
 	if cfg.AIEnabled && cfg.AIPrompt == "" {
 		return fmt.Errorf("AIPrompt cannot be empty if AI is enabled")
+	}
+	if cfg.AIEnabled && cfg.AIBinary == "" {
+		return fmt.Errorf("AIBinary cannot be empty if AI is enabled")
 	}
 	return nil
 }
