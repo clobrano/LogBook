@@ -39,6 +39,12 @@ func TestLoadConfig(t *testing.T) {
 	loadedConfig, err := LoadConfig(tmpfile)
 	assert.NoError(t, err)
 	assert.Equal(t, expectedConfig, loadedConfig)
+
+	// Test case: Malformed TOML file
+	malformedFile := filepath.Join(t.TempDir(), "malformed.toml")
+	os.WriteFile(malformedFile, []byte("invalid toml = ["), 0644)
+	_, err = LoadConfig(malformedFile)
+	assert.ErrorContains(t, err, "failed to decode config file")
 }
 
 func TestSaveConfig(t *testing.T) {
@@ -64,6 +70,12 @@ ai_prompt = "Write a summary of the note at the given file. Use 1st person and a
 one_line_template = "{{.Date | formatDate \"2006-01-02\"}}: {{.Summary}}"
 `
 	assert.Equal(t, expectedContent, string(content))
+
+	// Test case: Invalid path for saving
+	invalidPath := "/nonexistent/read-only/dir/config.toml"
+	cfg = DefaultConfig()
+	err = SaveConfig(invalidPath, cfg)
+	assert.ErrorContains(t, err, "failed to create config file")
 }
 
 func TestConfigValidate(t *testing.T) {

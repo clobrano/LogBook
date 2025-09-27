@@ -12,6 +12,8 @@ import (
 	"github.com/clobrano/LogBook/pkg/ai"
 	"github.com/clobrano/LogBook/pkg/config"
 	"github.com/clobrano/LogBook/pkg/template"
+
+	"github.com/fatih/color"
 )
 
 // CreateDailyJournalFile creates a new daily journal file based on the current date and configuration.
@@ -44,7 +46,7 @@ func CreateDailyJournalFile(cfg *config.Config, date time.Time) (string, error) 
 
 	// Check if file already exists
 	if _, err := os.Stat(filePath); err == nil {
-		return filePath, nil // File already exists, return its path
+		return color.GreenString("Daily journal file already exists: %s", filePath), nil
 	}
 
 	file, err := os.Create(filePath)
@@ -64,14 +66,14 @@ func CreateDailyJournalFile(cfg *config.Config, date time.Time) (string, error) 
 		return "", fmt.Errorf("failed to write daily template to file: %w", err)
 	}
 
-	return filePath, nil
+	return color.GreenString("Daily journal file created: %s", filePath), nil
 }
 
 // AppendToLog appends a new entry to the "LOG" chapter of a daily journal file.
 func AppendToLog(filePath, entry string, timestamp time.Time) error {
 	content, err := os.ReadFile(filePath)
 	if err != nil {
-		return fmt.Errorf("failed to read journal file: %w", err)
+		return fmt.Errorf("failed to read journal file %s: %w", filePath, err)
 	}
 
 	lines := strings.Split(string(content), "\n")
@@ -118,6 +120,7 @@ func AppendToLog(filePath, entry string, timestamp time.Time) error {
 		return fmt.Errorf("failed to write to journal file: %w", err)
 	}
 
+	fmt.Println(color.GreenString("Log entry appended to %s", filePath))
 	return nil
 }
 
@@ -166,7 +169,7 @@ func GenerateSummaryIfMissing(filePath string, cfg *config.Config, summarizer ai
 		}
 
 		if strings.TrimSpace(finalSummary) == "" {
-			fmt.Println("Manual summary skipped.")
+			fmt.Println(color.YellowString("Manual summary skipped."))
 			return nil // User skipped manual summary
 		}
 	}
@@ -210,17 +213,15 @@ func ListJournalFilesByPeriod(cfg *config.Config, startDate, endDate time.Time) 
 		if err != nil {
 			return nil, fmt.Errorf("failed to render daily file name for date %s: %w", d.Format("2006-01-02"), err)
 		}
-
 		filePath := filepath.Join(journalDir, fileName)
 
 		// Check if the file exists
 		if _, err := os.Stat(filePath); err == nil {
 			files = append(files, filePath)
 		} else if !os.IsNotExist(err) {
-			return nil, fmt.Errorf("error checking file %s: %w", filePath, err)
+			return nil, fmt.Errorf("failed to check file %s: %w", filePath, err)
 		}
 	}
-
 	return files, nil
 }
 
@@ -302,4 +303,3 @@ func EmbedOneLineNotes(filePath string, summaries map[string]string) error {
 
 	return nil
 }
-

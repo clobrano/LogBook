@@ -37,7 +37,7 @@ func LoadConfig(path string) (*Config, error) {
 	cfg := DefaultConfig()
 	_, err := toml.DecodeFile(path, cfg)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to decode config file %s: %w", path, err)
 	}
 	return cfg, nil
 }
@@ -46,12 +46,15 @@ func LoadConfig(path string) (*Config, error) {
 func SaveConfig(path string, cfg *Config) error {
 	f, err := os.Create(path)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to create config file %s: %w", path, err)
 	}
 	defer f.Close()
 
 	encoder := toml.NewEncoder(f)
-	return encoder.Encode(cfg)
+	if err := encoder.Encode(cfg); err != nil {
+		return fmt.Errorf("failed to encode config to file %s: %w", path, err)
+	}
+	return nil
 }
 
 // Validate checks if the configuration is valid.

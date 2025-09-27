@@ -18,8 +18,27 @@ func main() {
 	if len(os.Args) > 1 {
 		switch os.Args[1] {
 		case "help":
-			fmt.Println("This is the help command for LogBook.")
-			// TODO: Implement more comprehensive help
+			fmt.Println(`LogBook is a command-line application for daily journaling and periodic reviews.
+
+Usage:
+
+  logbook <command> [arguments]
+
+Available Commands:
+  help    Display help information for LogBook.
+  log     Add an entry to today's journal.
+          Usage: logbook log <your entry text>
+  review  Perform a review of journal entries for a specific period.
+          Usage:
+            logbook review week <week number> <year>
+            logbook review month <month name> <year>
+            logbook review year <year>
+
+Examples:
+  logbook log "Started working on the LogBook help command."
+  logbook review week 38 2025
+  logbook review month September 2025
+  logbook review year 2025`)
 		case "log":
 			if len(os.Args) < 3 {
 				fmt.Println("Usage: logbook log <entry>")

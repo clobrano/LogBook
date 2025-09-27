@@ -65,7 +65,8 @@ func TestReviewWeek(t *testing.T) {
 
 	result, err := ReviewWeek(aiCfg, week, year, aiSummarizer, strings.NewReader(""))
 	assert.NoError(t, err)
-	assert.Contains(t, result, fmt.Sprintf("Weekly review generated at: %s", filepath.Join(tmpDir, "review_week_38_2025.md")))
+	expectedSuccessMessage := fmt.Sprintf("Weekly review generated at: %s", filepath.Join(tmpDir, "review_week_38_2025.md"))
+	assert.Equal(t, expectedSuccessMessage, result)
 
 	reviewFilePath := filepath.Join(tmpDir, fmt.Sprintf("review_week_%d_%d.md", week, year))
 	assert.FileExists(t, reviewFilePath)
@@ -100,7 +101,8 @@ func TestReviewWeek(t *testing.T) {
 	os.Remove(reviewFilePath)
 	result, err = ReviewWeek(manualCfg, week, year, nil, manualReader)
 	assert.NoError(t, err)
-	assert.Contains(t, result, fmt.Sprintf("Weekly review generated at: %s", filepath.Join(tmpDir, "review_week_38_2025.md")))
+	expectedSuccessMessage = fmt.Sprintf("Weekly review generated at: %s", filepath.Join(tmpDir, "review_week_38_2025.md"))
+	assert.Equal(t, expectedSuccessMessage, result)
 
 	reviewContent, err = os.ReadFile(reviewFilePath)
 	assert.NoError(t, err)
@@ -187,7 +189,8 @@ func TestReviewMonth(t *testing.T) {
 
 	result, err := ReviewMonth(aiCfg, month, year, aiSummarizer, strings.NewReader(""))
 	assert.NoError(t, err)
-	assert.Contains(t, result, fmt.Sprintf("Monthly review generated at: %s", filepath.Join(tmpDir, "review_month_September_2025.md")))
+	expectedSuccessMessage := fmt.Sprintf("Monthly review generated at: %s", filepath.Join(tmpDir, "review_month_September_2025.md"))
+	assert.Equal(t, expectedSuccessMessage, result)
 
 	reviewFilePath := filepath.Join(tmpDir, fmt.Sprintf("review_month_%s_%d.md", month, year))
 	assert.FileExists(t, reviewFilePath)
@@ -219,7 +222,8 @@ func TestReviewMonth(t *testing.T) {
 	os.Remove(reviewFilePath)
 	result, err = ReviewMonth(manualCfg, month, year, nil, manualReader)
 	assert.NoError(t, err)
-	assert.Contains(t, result, fmt.Sprintf("Monthly review generated at: %s", filepath.Join(tmpDir, "review_month_September_2025.md")))
+	expectedSuccessMessage = fmt.Sprintf("Monthly review generated at: %s", filepath.Join(tmpDir, "review_month_September_2025.md"))
+	assert.Equal(t, expectedSuccessMessage, result)
 
 	reviewContent, err = os.ReadFile(reviewFilePath)
 	assert.NoError(t, err)
@@ -304,7 +308,8 @@ func TestReviewYear(t *testing.T) {
 
 	result, err := ReviewYear(aiCfg, year, aiSummarizer, strings.NewReader(""))
 	assert.NoError(t, err)
-	assert.Contains(t, result, fmt.Sprintf("Yearly review generated at: %s", filepath.Join(tmpDir, "review_year_2025.md")))
+	expectedSuccessMessage := fmt.Sprintf("Yearly review generated at: %s", filepath.Join(tmpDir, "review_year_2025.md"))
+	assert.Equal(t, expectedSuccessMessage, result)
 
 	reviewFilePath := filepath.Join(tmpDir, fmt.Sprintf("review_year_%d.md", year))
 	assert.FileExists(t, reviewFilePath)
@@ -336,7 +341,8 @@ func TestReviewYear(t *testing.T) {
 	os.Remove(reviewFilePath)
 	result, err = ReviewYear(manualCfg, year, nil, manualReader)
 	assert.NoError(t, err)
-	assert.Contains(t, result, fmt.Sprintf("Yearly review generated at: %s", filepath.Join(tmpDir, "review_year_2025.md")))
+	expectedSuccessMessage = fmt.Sprintf("Yearly review generated at: %s", filepath.Join(tmpDir, "review_year_2025.md"))
+	assert.Equal(t, expectedSuccessMessage, result)
 
 	reviewContent, err = os.ReadFile(reviewFilePath)
 	assert.NoError(t, err)

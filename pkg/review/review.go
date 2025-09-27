@@ -11,6 +11,8 @@ import (
 	"github.com/clobrano/LogBook/pkg/ai"
 	"github.com/clobrano/LogBook/pkg/config"
 	"github.com/clobrano/LogBook/pkg/journal"
+
+	"github.com/fatih/color"
 )
 
 // ReviewWeek generates a weekly review file.
@@ -22,7 +24,8 @@ func ReviewWeek(cfg *config.Config, week int, year int, summarizer ai.AISummariz
 
 	// Start by finding a date in the middle of the target week to ensure we get the correct ISO week.
 	// We can pick the 4th day of the year, as ISO week 1 always contains Jan 4.
-	dateInTargetWeek := time.Date(year, time.January, 4, 0, 0, 0, 0, time.UTC)
+
+dateInTargetWeek := time.Date(year, time.January, 4, 0, 0, 0, 0, time.UTC)
 
 	// Adjust to the correct year's ISO week 1
 	isoYear, isoWeek := dateInTargetWeek.ISOWeek()
@@ -97,7 +100,7 @@ func ReviewWeek(cfg *config.Config, week int, year int, summarizer ai.AISummariz
 		return "", fmt.Errorf("failed to write weekly review file: %w", err)
 	}
 
-	return fmt.Sprintf("Weekly review generated at: %s", reviewFilePath), nil
+	return color.GreenString("Weekly review generated at: %s", reviewFilePath), nil
 }
 
 // ReviewMonth generates a monthly review file.
@@ -167,7 +170,7 @@ func ReviewMonth(cfg *config.Config, month string, year int, summarizer ai.AISum
 		return "", fmt.Errorf("failed to write monthly review file: %w", err)
 	}
 
-	return fmt.Sprintf("Monthly review generated at: %s", reviewFilePath), nil
+	return color.GreenString("Monthly review generated at: %s", reviewFilePath), nil
 }
 
 // ReviewYear generates a yearly review file.
@@ -225,5 +228,5 @@ func ReviewYear(cfg *config.Config, year int, summarizer ai.AISummarizer, reader
 		return "", fmt.Errorf("failed to write yearly review file: %w", err)
 	}
 
-	return fmt.Sprintf("Yearly review generated at: %s", reviewFilePath), nil
+	return color.GreenString("Yearly review generated at: %s", reviewFilePath), nil
 }
