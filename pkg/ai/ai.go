@@ -1,12 +1,39 @@
 package ai
 
+import (
+	"fmt"
+	"os/exec"
+	"strings"
+)
+
 type AISummarizer interface {
 	GenerateSummary(text string, prompt string) (string, error)
 }
 
+// ExternalAISummarizer is a concrete implementation of AISummarizer that calls an external AI binary.
+type ExternalAISummarizer struct {
+	BinaryName string
+}
+
+func (e *ExternalAISummarizer) GenerateSummary(text string, prompt string) (string, error) {
+	if e.BinaryName == "" {
+		return "", fmt.Errorf("AI binary name is not configured")
+	}
+
+	// Execute the external AI binary
+	composedPrompt := fmt.Sprintf("%s %s", prompt, text)
+	cmd := exec.Command(e.BinaryName, "--prompt", composedPrompt)
+	output, err := cmd.CombinedOutput()
+	if err != nil {
+		return "", fmt.Errorf("failed to execute AI binary %s: %w\nOutput: %s", e.BinaryName, err, string(output))
+	}
+
+	return strings.TrimSpace(string(output)), nil
+}
+
 // PlaceholderAISummarizer is a concrete implementation of AISummarizer that returns a predefined summary.
-type PlaceholderAISummarizer struct{
-	Err error
+type PlaceholderAISummarizer struct {
+	Err        error
 	BinaryName string
 }
 
@@ -21,10 +48,11 @@ func (p *PlaceholderAISummarizer) GenerateSummary(text string, prompt string) (s
 
 // NewAISummarizer creates a new AISummarizer based on the provided binary name.
 func NewAISummarizer(binaryName string) AISummarizer {
-	// In a real application, this would return different implementations
-	// based on the binaryName (e.g., a GeminiAISummarizer, a ClaudeAISummarizer).
-	// For now, we return a PlaceholderAISummarizer.
-	return &PlaceholderAISummarizer{BinaryName: binaryName}
+	if binaryName != "" {
+		return &ExternalAISummarizer{BinaryName: binaryName}
+	}
+	// Fallback to PlaceholderAISummarizer if no binary name is provided
+	return &PlaceholderAISummarizer{}
 }
 
 // MockAISummarizer is a mock implementation of the AISummarizer interface for testing.
@@ -36,3 +64,4 @@ type MockAISummarizer struct {
 func (m *MockAISummarizer) GenerateSummary(text string, prompt string) (string, error) {
 	return m.Summary, m.Err
 }
+

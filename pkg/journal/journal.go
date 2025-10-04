@@ -17,7 +17,7 @@ import (
 )
 
 // CreateDailyJournalFile creates a new daily journal file based on the current date and configuration.
-func CreateDailyJournalFile(cfg *config.Config, date time.Time) (string, string, error) {
+func CreateDailyJournalFile(cfg *config.Config, date time.Time, summarizer ai.AISummarizer, reader io.Reader) (string, string, error) {
 	if err := cfg.Validate(); err != nil {
 		return "", "", fmt.Errorf("invalid configuration: %w", err)
 	}
@@ -64,6 +64,13 @@ func CreateDailyJournalFile(cfg *config.Config, date time.Time) (string, string,
 	_, err = file.WriteString(templateContent)
 	if err != nil {
 		return "", "", fmt.Errorf("failed to write daily template to file: %w", err)
+	}
+
+	// Generate summary for the daily file if missing
+	dailySummaryPrompt := cfg.AIPrompt
+	err = GenerateSummaryIfMissing(filePath, cfg, summarizer, dailySummaryPrompt, reader)
+	if err != nil {
+		return "", "", fmt.Errorf("failed to generate summary for daily journal: %w", err)
 	}
 
 	return filePath, color.GreenString("Daily journal file created: %s", filePath), nil
@@ -134,8 +141,25 @@ func GenerateSummaryIfMissing(filePath string, cfg *config.Config, summarizer ai
 	lines := strings.Split(string(content), "\n")
 
 	// Check if a summary already exists (first non-empty paragraph after the title)
-	if len(lines) > 1 && strings.TrimSpace(lines[1]) != "" && !strings.HasPrefix(strings.TrimSpace(lines[1]), "#") {
-		// Summary already exists, do nothing
+	// A summary is considered missing if:
+	// 1. The file has less than 3 lines (title, empty line, placeholder/summary)
+	// 2. The second line (index 1) is empty AND the third line (index 2) is either empty or contains the placeholder.
+	// 3. The second line (index 1) is not empty, not a heading, and not the placeholder.
+
+	isSummaryMissing := false
+	if len(lines) < 3 {
+		isSummaryMissing = true
+	} else {
+		trimmedLine1 := strings.TrimSpace(lines[1])
+		trimmedLine2 := strings.TrimSpace(lines[2])
+
+		if trimmedLine1 == "" && (trimmedLine2 == "" || trimmedLine2 == "[SUMMARY_PLACEHOLDER]") {
+			isSummaryMissing = true
+		}
+	}
+
+	if !isSummaryMissing {
+		fmt.Println("DEBUG: Summary already exists, do nothing")
 		return nil
 	}
 
@@ -143,9 +167,25 @@ func GenerateSummaryIfMissing(filePath string, cfg *config.Config, summarizer ai
 
 	if summarizer != nil {
 		fmt.Println("DEBUG: Entering AI path")
-		// Extract the content to be summarized (excluding the title and "One-line note" section)
-		contentToSummarize := strings.Join(lines, "\n")
+		// Extract the content to be summarized (excluding the title, summary/placeholder, and "One-line note" section)
+		contentLines := make([]string, 0, len(lines))
+		// Skip title (lines[0])
+		// Skip potential empty line (lines[1]) and placeholder/summary (lines[2])
+		// Start from lines[3] if placeholder was present, otherwise from lines[1] or lines[2] depending on actual content
+		startIndex := 1 // Default to start after title
+		if len(lines) > 2 && strings.TrimSpace(lines[2]) == "[SUMMARY_PLACEHOLDER]" {
+			startIndex = 3 // Skip title, empty line, and placeholder
+		} else if len(lines) > 1 && strings.TrimSpace(lines[1]) == "" {
+			startIndex = 2 // Skip title and empty line
+		}
+
+		for i := startIndex; i < len(lines); i++ {
+			contentLines = append(contentLines, lines[i])
+		}
+		contentToSummarize := strings.Join(contentLines, "\n")
 		oneLineNoteSection := "## One-line note"
+
+		fmt.Println("DEBUG: content to summarize: ", contentToSummarize)
 		idx := strings.Index(contentToSummarize, oneLineNoteSection)
 		if idx != -1 {
 			contentToSummarize = contentToSummarize[:idx]
@@ -174,13 +214,22 @@ func GenerateSummaryIfMissing(filePath string, cfg *config.Config, summarizer ai
 		}
 	}
 
-	// Insert the generated summary after the title
+	// Insert the generated summary after the title, replacing the placeholder if it exists
 	var newContentBuilder strings.Builder
 	newContentBuilder.WriteString(lines[0]) // Title
 	newContentBuilder.WriteString("\n")
-	newContentBuilder.WriteString(strings.TrimSpace(finalSummary))
-	newContentBuilder.WriteString("\n\n")                        // Two newlines after the summary
-	newContentBuilder.WriteString(strings.Join(lines[2:], "\n")) // Rest of the content, skipping the initial empty line
+
+	// If there was a placeholder, replace it. Otherwise, insert after the empty line.
+	if len(lines) > 2 && strings.TrimSpace(lines[2]) == "[SUMMARY_PLACEHOLDER]" {
+		newContentBuilder.WriteString(strings.TrimSpace(finalSummary))
+		newContentBuilder.WriteString("\n\n")                        // Two newlines after the summary
+		newContentBuilder.WriteString(strings.Join(lines[3:], "\n")) // Rest of the content, skipping title, empty line, and placeholder
+	} else {
+		newContentBuilder.WriteString("\n") // Keep the empty line after title
+		newContentBuilder.WriteString(strings.TrimSpace(finalSummary))
+		newContentBuilder.WriteString("\n\n")                        // Two newlines after the summary
+		newContentBuilder.WriteString(strings.Join(lines[2:], "\n")) // Rest of the content, skipping title and empty line
+	}
 
 	modifiedContent := newContentBuilder.String()
 

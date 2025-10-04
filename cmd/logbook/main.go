@@ -42,9 +42,9 @@ Available Commands:
           Usage: logbook log <your entry text>
   review  Perform a review of journal entries for a specific period.
           Usage:
-            logbook review week <week number> <year>
-            logbook review month <month name> <year>
-            logbook review year <year>
+            logbook review week [week number] [year] (defaults to current week/year)
+            logbook review month [month name] [year] (defaults to current month/year)
+            logbook review year [year] (defaults to current year)
 
 Examples:
   logbook config
@@ -100,7 +100,7 @@ Examples:
 			}
 			entry := strings.Join(os.Args[2:], " ")
 
-			journalFilePath, message, err := journal.CreateDailyJournalFile(cfg, time.Now())
+			journalFilePath, message, err := journal.CreateDailyJournalFile(cfg, time.Now(), cfg.AISummarizer, os.Stdin)
 			if err != nil {
 				fmt.Printf("Error creating/getting daily journal file: %v\n", err)
 				os.Exit(1)
@@ -126,20 +126,34 @@ Examples:
 			subCommand := os.Args[2]
 			switch subCommand {
 			case "week":
-				if len(os.Args) < 5 {
-					fmt.Println("Usage: logbook review week <week number> <year>")
-					os.Exit(1)
+				now := time.Now()
+				currentYear, currentWeek := now.ISOWeek()
+
+				week := currentWeek
+				year := currentYear
+
+				if len(os.Args) >= 4 {
+					parsedWeek, err := strconv.Atoi(os.Args[3])
+					if err != nil {
+						fmt.Println("Invalid week number:", os.Args[3])
+						os.Exit(1)
+					}
+					week = parsedWeek
 				}
-				week, err := strconv.Atoi(os.Args[3])
-				if err != nil {
-					fmt.Println("Invalid week number:", os.Args[3])
-					os.Exit(1)
+				if len(os.Args) >= 5 {
+					parsedYear, err := strconv.Atoi(os.Args[4])
+					if err != nil {
+						fmt.Println("Invalid year:", os.Args[4])
+						os.Exit(1)
+					}
+					year = parsedYear
 				}
-				year, err := strconv.Atoi(os.Args[4])
-				if err != nil {
-					fmt.Println("Invalid year:", os.Args[4])
-					os.Exit(1)
+
+				// If only 'logbook review week' is called, use current week and year
+				if len(os.Args) == 3 {
+					fmt.Printf("No week number or year provided. Defaulting to current week (%d) and year (%d).\n", week, year)
 				}
+
 				result, err := review.ReviewWeek(cfg, week, year, cfg.AISummarizer, os.Stdin)
 				if err != nil {
 					fmt.Printf("Error generating weekly review: %v\n", err)
@@ -147,16 +161,30 @@ Examples:
 				}
 				fmt.Println(result)
 			case "month":
-				if len(os.Args) < 5 {
-					fmt.Println("Usage: logbook review month <month name> <year>")
-					os.Exit(1)
+				now := time.Now()
+				currentMonth := now.Month().String()
+				currentYear := now.Year()
+
+				month := currentMonth
+				year := currentYear
+
+				if len(os.Args) >= 4 {
+					month = os.Args[3]
 				}
-				month := os.Args[3]
-				year, err := strconv.Atoi(os.Args[4])
-				if err != nil {
-					fmt.Println("Invalid year:", os.Args[4])
-					os.Exit(1)
+				if len(os.Args) >= 5 {
+					parsedYear, err := strconv.Atoi(os.Args[4])
+					if err != nil {
+						fmt.Println("Invalid year:", os.Args[4])
+						os.Exit(1)
+					}
+					year = parsedYear
 				}
+
+				// If only 'logbook review month' is called, use current month and year
+				if len(os.Args) == 3 {
+					fmt.Printf("No month or year provided. Defaulting to current month (%s) and year (%d).\n", month, year)
+				}
+
 				result, err := review.ReviewMonth(cfg, month, year, cfg.AISummarizer, os.Stdin)
 				if err != nil {
 					fmt.Printf("Error generating monthly review: %v\n", err)
@@ -164,15 +192,25 @@ Examples:
 				}
 				fmt.Println(result)
 			case "year":
-				if len(os.Args) < 4 {
-					fmt.Println("Usage: logbook review year <year>")
-					os.Exit(1)
+				now := time.Now()
+				currentYear := now.Year()
+
+				year := currentYear
+
+				if len(os.Args) >= 4 {
+					parsedYear, err := strconv.Atoi(os.Args[3])
+					if err != nil {
+						fmt.Println("Invalid year:", os.Args[3])
+						os.Exit(1)
+					}
+					year = parsedYear
 				}
-				year, err := strconv.Atoi(os.Args[3])
-				if err != nil {
-					fmt.Println("Invalid year:", os.Args[3])
-					os.Exit(1)
+
+				// If only 'logbook review year' is called, use current year
+				if len(os.Args) == 3 {
+					fmt.Printf("No year provided. Defaulting to current year (%d).\n", year)
 				}
+
 				result, err := review.ReviewYear(cfg, year, cfg.AISummarizer, os.Stdin)
 				if err != nil {
 					fmt.Printf("Error generating yearly review: %v\n", err)

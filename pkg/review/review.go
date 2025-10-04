@@ -25,7 +25,7 @@ func ReviewWeek(cfg *config.Config, week int, year int, summarizer ai.AISummariz
 	// Start by finding a date in the middle of the target week to ensure we get the correct ISO week.
 	// We can pick the 4th day of the year, as ISO week 1 always contains Jan 4.
 
-dateInTargetWeek := time.Date(year, time.January, 4, 0, 0, 0, 0, time.UTC)
+	dateInTargetWeek := time.Date(year, time.January, 4, 0, 0, 0, 0, time.UTC)
 
 	// Adjust to the correct year's ISO week 1
 	isoYear, isoWeek := dateInTargetWeek.ISOWeek()
@@ -66,7 +66,7 @@ dateInTargetWeek := time.Date(year, time.January, 4, 0, 0, 0, 0, time.UTC)
 	}
 
 	// Generate summary for the review file if missing
-	reviewSummaryPrompt := "Write a summary of the weekly review. Use 1st person and a simple language. Use 200 characters or less."
+	reviewSummaryPrompt := "Write a summary of the weekly review using the same Language. Use 1st person and a simple language. Use 200 characters or less."
 	err = journal.GenerateSummaryIfMissing(reviewFilePath, cfg, summarizer, reviewSummaryPrompt, reader)
 	if err != nil {
 		return "", fmt.Errorf("failed to generate summary for weekly review: %w", err)
