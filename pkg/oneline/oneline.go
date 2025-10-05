@@ -50,14 +50,7 @@ func GetPastSummaries(cfg *config.Config, targetDate time.Time) (map[string]stri
 			return nil, fmt.Errorf("failed to render daily file name for %s: %w", dateKey, err)
 		}
 		filePath := filepath.Join(cfg.JournalDir, fileName)
-		summary := getSummaryWithAIFallback(filePath, cfg)
-
-		// Only add if entry exists (not missing)
-		// Once we hit a missing year, stop checking further back
-		if summary == "missing" {
-			break
-		}
-		summaries[dateKey] = summary
+		summaries[dateKey] = getSummaryWithAIFallback(filePath, cfg)
 	}
 
 	return summaries, nil
