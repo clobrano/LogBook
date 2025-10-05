@@ -65,10 +65,10 @@ func TestReviewWeek(t *testing.T) {
 
 	result, err := ReviewWeek(aiCfg, week, year, aiSummarizer, strings.NewReader(""))
 	assert.NoError(t, err)
-	expectedSuccessMessage := fmt.Sprintf("Weekly review generated at: %s", filepath.Join(tmpDir, "review_week_38_2025.md"))
+	expectedSuccessMessage := fmt.Sprintf("Weekly review generated at: %s", filepath.Join(tmpDir, "review_week_2025_38.md"))
 	assert.Equal(t, expectedSuccessMessage, result)
 
-	reviewFilePath := filepath.Join(tmpDir, fmt.Sprintf("review_week_%d_%d.md", week, year))
+	reviewFilePath := filepath.Join(tmpDir, fmt.Sprintf("review_week_%d_%d.md", year, week))
 	assert.FileExists(t, reviewFilePath)
 
 	reviewContent, err := os.ReadFile(reviewFilePath)
@@ -101,7 +101,7 @@ func TestReviewWeek(t *testing.T) {
 	os.Remove(reviewFilePath)
 	result, err = ReviewWeek(manualCfg, week, year, nil, manualReader)
 	assert.NoError(t, err)
-	expectedSuccessMessage = fmt.Sprintf("Weekly review generated at: %s", filepath.Join(tmpDir, "review_week_38_2025.md"))
+	expectedSuccessMessage = fmt.Sprintf("Weekly review generated at: %s", filepath.Join(tmpDir, "review_week_2025_38.md"))
 	assert.Equal(t, expectedSuccessMessage, result)
 
 	reviewContent, err = os.ReadFile(reviewFilePath)
@@ -131,9 +131,9 @@ func TestReviewWeek(t *testing.T) {
 
 	result, err = ReviewWeek(noEntriesCfg, week, year, nil, strings.NewReader("\n")) // Simulate skipping manual summary
 	assert.NoError(t, err)
-	assert.Contains(t, result, fmt.Sprintf("Weekly review generated at: %s", filepath.Join(noEntriesTmpDir, "review_week_38_2025.md")))
+	assert.Contains(t, result, fmt.Sprintf("Weekly review generated at: %s", filepath.Join(noEntriesTmpDir, "review_week_2025_38.md")))
 
-	reviewFilePath = filepath.Join(noEntriesTmpDir, fmt.Sprintf("review_week_%d_%d.md", week, year))
+	reviewFilePath = filepath.Join(noEntriesTmpDir, fmt.Sprintf("review_week_%d_%d.md", year, week))
 	assert.FileExists(t, reviewFilePath)
 
 	reviewContent, err = os.ReadFile(reviewFilePath)
