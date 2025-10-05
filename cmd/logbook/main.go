@@ -100,19 +100,27 @@ Examples:
 			}
 			entry := strings.Join(os.Args[2:], " ")
 
-			journalFilePath, message, err := journal.CreateDailyJournalFile(cfg, time.Now(), cfg.AISummarizer, os.Stdin)
+			now := time.Now()
+			journalFilePath, message, err := journal.CreateDailyJournalFile(cfg, now, cfg.AISummarizer, os.Stdin)
 			if err != nil {
 				fmt.Printf("Error creating/getting daily journal file: %v\n", err)
 				os.Exit(1)
 			}
 			fmt.Println(message)
 
-			err = journal.AppendToLog(cfg, journalFilePath, entry, time.Now())
+			err = journal.AppendToLog(cfg, journalFilePath, entry, now)
 			if err != nil {
 				fmt.Printf("Error appending to log: %v\n", err)
 				os.Exit(1)
 			}
 			fmt.Println("Entry added to log.")
+
+			// Finalize the daily file: embed one-line notes
+			err = journal.FinalizeDailyFile(cfg, journalFilePath, now)
+			if err != nil {
+				fmt.Printf("Error finalizing daily file: %v\n", err)
+				os.Exit(1)
+			}
 		case "review":
 			cfg, err = config.LoadConfig(configFilePath)
 			if err != nil {

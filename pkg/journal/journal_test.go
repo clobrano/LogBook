@@ -11,6 +11,7 @@ import (
 
 	"github.com/clobrano/LogBook/pkg/ai"
 	"github.com/clobrano/LogBook/pkg/config"
+	"github.com/clobrano/LogBook/pkg/oneline"
 	"github.com/clobrano/LogBook/pkg/template"
 
 	"github.com/stretchr/testify/assert"
@@ -38,12 +39,15 @@ func TestCreateDailyJournalFile(t *testing.T) {
 	date := time.Date(2025, time.September, 18, 0, 0, 0, 0, time.UTC)
 	expectedFilePath := filepath.Join(tmpDir, "2025-09-18.md")
 
-	filePath, _, err := CreateDailyJournalFile(cfg, date, nil, nil)
+	// Provide empty string reader to skip manual summary
+	emptyReader := strings.NewReader("\n")
+	filePath, _, err := CreateDailyJournalFile(cfg, date, nil, emptyReader)
 	assert.NoError(t, err)
 	assert.Equal(t, expectedFilePath, filePath)
 	assert.FileExists(t, expectedFilePath)
 
-	filePath, _, err = CreateDailyJournalFile(cfg, date, nil, nil)
+	emptyReader = strings.NewReader("\n")
+	filePath, _, err = CreateDailyJournalFile(cfg, date, nil, emptyReader)
 	assert.NoError(t, err)
 	assert.Equal(t, expectedFilePath, filePath)
 	assert.FileExists(t, expectedFilePath)
@@ -465,7 +469,7 @@ func TestEmbedOneLineNotes(t *testing.T) {
 		"2_years_ago":  "Summary from 2 years ago.",
 	}
 
-	err := EmbedOneLineNotes(filePath, summaries)
+	err := oneline.EmbedOneLineNotes(filePath, summaries)
 	assert.NoError(t, err)
 
 	// Read the updated file content

@@ -173,7 +173,7 @@ func ReviewMonth(cfg *config.Config, month string, year int, summarizer ai.AISum
 	return color.GreenString("Monthly review generated at: %s", reviewFilePath), nil
 }
 
-// ReviewYear generates a yearly review file.
+// ReviewYear generates a yearly review file with monthly summaries and daily entries organized by month.
 func ReviewYear(cfg *config.Config, year int, summarizer ai.AISummarizer, reader io.Reader) (string, error) {
 	startDate := time.Date(year, time.January, 1, 0, 0, 0, 0, time.UTC)
 	endDate := time.Date(year, time.December, 31, 0, 0, 0, 0, time.UTC)
@@ -211,15 +211,40 @@ func ReviewYear(cfg *config.Config, year int, summarizer ai.AISummarizer, reader
 	if len(journalFiles) == 0 {
 		reviewContentBuilder.WriteString("No journal entries found for this year.\n\n")
 	} else {
-		reviewContentBuilder.WriteString("## Daily Summaries\n\n")
+		// Group journal files by month
+		filesByMonth := make(map[time.Month][]string)
 		for _, filePath := range journalFiles {
-			summary, err := journal.ExtractSummary(filePath)
-			if err != nil {
-				return "", fmt.Errorf("failed to extract summary from %s: %w", filePath, err)
-			}
 			fileName := filepath.Base(filePath)
-			dateStr := strings.TrimSuffix(fileName, ".md") // Assuming .md extension
-			reviewContentBuilder.WriteString(fmt.Sprintf("### %s\n%s\n\n", dateStr, summary))
+			dateStr := strings.TrimSuffix(fileName, ".md")
+			parsedDate, err := time.Parse("2006-01-02", dateStr)
+			if err != nil {
+				continue // Skip files that don't match expected format
+			}
+			filesByMonth[parsedDate.Month()] = append(filesByMonth[parsedDate.Month()], filePath)
+		}
+
+		reviewContentBuilder.WriteString("## Monthly Summaries\n\n")
+
+		// Iterate through months in order
+		for month := time.January; month <= time.December; month++ {
+			files := filesByMonth[month]
+			if len(files) == 0 {
+				continue // Skip months with no entries
+			}
+
+			reviewContentBuilder.WriteString(fmt.Sprintf("### %s\n\n", month.String()))
+
+			// Add daily summaries for this month
+			for _, filePath := range files {
+				summary, err := journal.ExtractSummary(filePath)
+				if err != nil {
+					return "", fmt.Errorf("failed to extract summary from %s: %w", filePath, err)
+				}
+				fileName := filepath.Base(filePath)
+				dateStr := strings.TrimSuffix(fileName, ".md")
+				reviewContentBuilder.WriteString(fmt.Sprintf("- **%s**: %s\n", dateStr, summary))
+			}
+			reviewContentBuilder.WriteString("\n")
 		}
 	}
 

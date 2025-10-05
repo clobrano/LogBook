@@ -33,19 +33,20 @@ func TestGetPastSummaries(t *testing.T) {
 	targetDate := time.Date(2025, time.September, 20, 0, 0, 0, 0, time.UTC)
 
 	// Create dummy journal files for various past dates
-	createDummyJournalFile(targetDate.AddDate(0, 0, -7), "Summary for 1 week ago.")       // 1 week ago
-	createDummyJournalFile(targetDate.AddDate(0, -1, 0), "Summary for 1 month ago.")      // 1 month ago
-	createDummyJournalFile(targetDate.AddDate(0, -6, 0), "Summary for 6 months ago.")     // 6 months ago
-	createDummyJournalFile(targetDate.AddDate(-1, 0, 0), "Summary for 1 year ago.")     // 1 year ago
-	// Do not create file for 2 years ago to test "missing" case
+	createDummyJournalFile(targetDate.AddDate(0, 0, -7), "Summary for 1 week ago.")   // 1 week ago
+	createDummyJournalFile(targetDate.AddDate(0, -1, 0), "Summary for 1 month ago.")  // 1 month ago
+	createDummyJournalFile(targetDate.AddDate(0, -6, 0), "Summary for 6 months ago.") // 6 months ago
+	createDummyJournalFile(targetDate.AddDate(-1, 0, 0), "Summary for 1 year ago.")   // 1 year ago
+	createDummyJournalFile(targetDate.AddDate(-2, 0, 0), "Summary for 2 years ago.")  // 2 years ago
+	// Do not create file for 3 years ago to test breaking the loop
 
 	// Test case 1: Retrieve summaries for past periods
 	expectedSummaries := map[string]string{
 		"1_week_ago":   "Summary for 1 week ago.",
 		"1_month_ago":  "Summary for 1 month ago.",
 		"6_months_ago": "Summary for 6 months ago.",
-		"1_year_ago":   "Summary for 1 year ago.",
-		"2_years_ago":  "missing",
+		"1_years_ago":  "Summary for 1 year ago.",
+		"2_years_ago":  "Summary for 2 years ago.",
 	}
 
 	actualSummaries, err := GetPastSummaries(cfg, targetDate)

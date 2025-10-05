@@ -1,0 +1,18 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(go:*)",
+      "Bash(test:*)",
+      "Bash(cat:*)",
+      "Bash(./logbook help)",
+      "Bash(./logbook log \"Testing AI summary generation after fix\")",
+      "Read(//home/carlo/.config/logbook/**)",
+      "Bash(./logbook log \"Testing AI summary persistence\")",
+      "Read(//home/carlo/.logbook/journal/**)",
+      "Bash(./logbook log \"testing shell escaping fix\")",
+      "Bash(./logbook log:*)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}

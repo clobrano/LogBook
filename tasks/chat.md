@@ -73,4 +73,26 @@ a. Are there any preferences for the command-line interface (e.g., color usage, 
 b. How should errors or confirmations be displayed to the user? If necessary some TUI can be implemented with github.com/rivo/tview
 
 
+# Sun Oct  5 10:33:54 AM CEST 2025
 
+There are some problems:
+1. AI is used too much. Every time I add a new journal log, AI agent is called. Let's call the AI agent for summary ONLY when doing a review and only if the summary is missing from the daily note
+2. The new logs are always added at the bottom of the journal note, regardless the format of the note. For example, the default template has "One-line note" as last paragraph, hence the new entries are added in this section, instead than in LOG section. 
+
+To solve the issues above, we will remove the ability to decide the Journal template. We will only use a predefined and hardcoded one which is the following
+
+```markdown
+# <today's date>
+<!-- add today summary below this line. If missing, the AI will generate one for you according to configuration file -->
+
+# One-line note
+* 1 week ago (dd-mm-yyyy): summary from 1 week ago, or "missing"
+* 1 month ago (dd-mm-yyyy): summary from 1 month ago, or "missing"
+* 6 month ago (dd-mm-yyyy): summary from 6 month ago, or "missing"
+* 1 year ago (dd-mm-yyyy): summary from 1 year ago, or "missing"
+
+# LOG
+
+```
+
+The summary is added ONLY IF it is not already present.

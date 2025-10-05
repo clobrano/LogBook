@@ -9,8 +9,10 @@ import (
 
 // TemplateData holds the data available for templating.
 type TemplateData struct {
-	Date time.Time
+	Date    time.Time
+	Time    time.Time
 	Summary string
+	Entry   string
 	// Add other fields as needed for templating
 }
 
@@ -20,6 +22,9 @@ func Render(templateString string, data TemplateData) (string, error) {
 	tmpl := template.New("logbook_template").Funcs(template.FuncMap{
 		"formatDate": func(format string, date time.Time) string {
 			return date.Format(format)
+		},
+		"formatTime": func(format string, t time.Time) string {
+			return t.Format(format)
 		},
 	})
 

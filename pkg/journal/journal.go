@@ -11,6 +11,7 @@ import (
 
 	"github.com/clobrano/LogBook/pkg/ai"
 	"github.com/clobrano/LogBook/pkg/config"
+	"github.com/clobrano/LogBook/pkg/oneline"
 	"github.com/clobrano/LogBook/pkg/template"
 
 	"github.com/fatih/color"
@@ -55,25 +56,32 @@ func CreateDailyJournalFile(cfg *config.Config, date time.Time, summarizer ai.AI
 	}
 	defer file.Close()
 
-	// Render the daily template and write to file
-	templateContent, err := template.Render(cfg.DailyTemplate, data)
-	if err != nil {
-		return "", "", fmt.Errorf("failed to render daily template: %w", err)
-	}
+	// Use hardcoded template
+	templateContent := fmt.Sprintf("# %s\n<!-- add today summary below this line. If missing, the AI will generate one for you according to configuration file -->\n\n# One-line note\n\n# LOG\n\n", date.Format("Jan 02 2006 Monday"))
 
 	_, err = file.WriteString(templateContent)
 	if err != nil {
 		return "", "", fmt.Errorf("failed to write daily template to file: %w", err)
 	}
 
-	// Generate summary for the daily file if missing
-	dailySummaryPrompt := cfg.AIPrompt
-	err = GenerateSummaryIfMissing(filePath, cfg, summarizer, dailySummaryPrompt, reader)
+	return filePath, color.GreenString("Daily journal file created: %s", filePath), nil
+}
+
+// FinalizeDailyFile embeds one-line notes for a daily journal file.
+// This should be called after all log entries have been added for the day.
+func FinalizeDailyFile(cfg *config.Config, filePath string, date time.Time) error {
+	// Embed one-line notes from past entries
+	pastSummaries, err := oneline.GetPastSummaries(cfg, date)
 	if err != nil {
-		return "", "", fmt.Errorf("failed to generate summary for daily journal: %w", err)
+		return fmt.Errorf("failed to get past summaries for one-line notes: %w", err)
 	}
 
-	return filePath, color.GreenString("Daily journal file created: %s", filePath), nil
+	err = oneline.EmbedOneLineNotes(filePath, pastSummaries)
+	if err != nil {
+		return fmt.Errorf("failed to embed one-line notes: %w", err)
+	}
+
+	return nil
 }
 
 // AppendToLog appends a new entry to the "LOG" chapter of a daily journal file.
@@ -87,7 +95,7 @@ func AppendToLog(cfg *config.Config, filePath, entry string, timestamp time.Time
 	logChapterIndex := -1
 
 	for i, line := range lines {
-		if strings.HasPrefix(line, "## LOG") {
+		if strings.HasPrefix(line, "# LOG") {
 			logChapterIndex = i
 			break
 		}
@@ -107,7 +115,15 @@ func AppendToLog(cfg *config.Config, filePath, entry string, timestamp time.Time
 		insertIndex++
 	}
 
-	newEntryLine := fmt.Sprintf("%02d:%02d %s", timestamp.Hour(), timestamp.Minute(), entry)
+	// Render the log entry using the configurable template
+	data := template.TemplateData{
+		Time:  timestamp,
+		Entry: entry,
+	}
+	newEntryLine, err := template.Render(cfg.LogEntryTemplate, data)
+	if err != nil {
+		return fmt.Errorf("failed to render log entry template: %w", err)
+	}
 
 	// Insert the new entry
 	newLines := make([]string, 0, len(lines)+1)
@@ -132,6 +148,7 @@ func AppendToLog(cfg *config.Config, filePath, entry string, timestamp time.Time
 }
 
 // GenerateSummaryIfMissing reads a journal file, and if no summary exists, generates one using the provided AI summarizer.
+// Summary is inserted right after the first header line.
 func GenerateSummaryIfMissing(filePath string, cfg *config.Config, summarizer ai.AISummarizer, aiPrompt string, reader io.Reader) error {
 	content, err := os.ReadFile(filePath)
 	if err != nil {
@@ -140,56 +157,43 @@ func GenerateSummaryIfMissing(filePath string, cfg *config.Config, summarizer ai
 
 	lines := strings.Split(string(content), "\n")
 
-	// Check if a summary already exists (first non-empty paragraph after the title)
-	// A summary is considered missing if:
-	// 1. The file has less than 3 lines (title, empty line, placeholder/summary)
-	// 2. The second line (index 1) is empty AND the third line (index 2) is either empty or contains the placeholder.
-	// 3. The second line (index 1) is not empty, not a heading, and not the placeholder.
+	// Check if summary already exists:
+	// Line 0: # Title
+	// Line 1: might be HTML comment (<!-- ... -->)
+	// Summary exists if there's non-empty, non-comment, non-header content after title
 
-	isSummaryMissing := false
-	if len(lines) < 3 {
-		isSummaryMissing = true
-	} else {
-		trimmedLine1 := strings.TrimSpace(lines[1])
-		trimmedLine2 := strings.TrimSpace(lines[2])
-
-		if trimmedLine1 == "" && (trimmedLine2 == "" || trimmedLine2 == "[SUMMARY_PLACEHOLDER]") {
-			isSummaryMissing = true
+	isSummaryMissing := true
+	for i := 1; i < len(lines); i++ {
+		trimmed := strings.TrimSpace(lines[i])
+		if trimmed == "" {
+			continue // Skip empty lines
 		}
+		if strings.HasPrefix(trimmed, "<!--") {
+			continue // Skip HTML comments
+		}
+		if strings.HasPrefix(trimmed, "#") {
+			break // Hit a section header, no summary found
+		}
+		// Found non-empty, non-comment, non-header content = summary exists
+		isSummaryMissing = false
+		break
 	}
 
 	if !isSummaryMissing {
-		fmt.Println("DEBUG: Summary already exists, do nothing")
-		return nil
+		return nil // Summary already exists
 	}
 
 	var finalSummary string
 
 	if summarizer != nil {
-		fmt.Println("DEBUG: Entering AI path")
-		// Extract the content to be summarized (excluding the title, summary/placeholder, and "One-line note" section)
-		contentLines := make([]string, 0, len(lines))
-		// Skip title (lines[0])
-		// Skip potential empty line (lines[1]) and placeholder/summary (lines[2])
-		// Start from lines[3] if placeholder was present, otherwise from lines[1] or lines[2] depending on actual content
-		startIndex := 1 // Default to start after title
-		if len(lines) > 2 && strings.TrimSpace(lines[2]) == "[SUMMARY_PLACEHOLDER]" {
-			startIndex = 3 // Skip title, empty line, and placeholder
-		} else if len(lines) > 1 && strings.TrimSpace(lines[1]) == "" {
-			startIndex = 2 // Skip title and empty line
-		}
-
-		for i := startIndex; i < len(lines); i++ {
-			contentLines = append(contentLines, lines[i])
-		}
-		contentToSummarize := strings.Join(contentLines, "\n")
+		// Extract content to summarize (skip title, exclude "One-line note" section)
+		contentToSummarize := strings.Join(lines[1:], "\n")
 		oneLineNoteSection := "## One-line note"
-
-		fmt.Println("DEBUG: content to summarize: ", contentToSummarize)
 		idx := strings.Index(contentToSummarize, oneLineNoteSection)
 		if idx != -1 {
 			contentToSummarize = contentToSummarize[:idx]
 		}
+		contentToSummarize = strings.TrimSpace(contentToSummarize)
 
 		// Generate summary using AI agent
 		generatedSummary, err := summarizer.GenerateSummary(contentToSummarize, aiPrompt)
@@ -198,9 +202,8 @@ func GenerateSummaryIfMissing(filePath string, cfg *config.Config, summarizer ai
 		}
 		finalSummary = generatedSummary
 	} else {
-		fmt.Println("DEBUG: Entering Manual path")
 		// Prompt user for manual summary
-		fmt.Print("No AI agent configured or provided. Please enter a manual summary (or leave blank to skip): ")
+		fmt.Print("No AI agent configured. Please enter a manual summary (or leave blank to skip): ")
 		scanner := bufio.NewScanner(reader)
 		if scanner.Scan() {
 			finalSummary = scanner.Text()
@@ -214,21 +217,29 @@ func GenerateSummaryIfMissing(filePath string, cfg *config.Config, summarizer ai
 		}
 	}
 
-	// Insert the generated summary after the title, replacing the placeholder if it exists
+	// Insert summary after title and HTML comment (if present)
 	var newContentBuilder strings.Builder
 	newContentBuilder.WriteString(lines[0]) // Title
 	newContentBuilder.WriteString("\n")
 
-	// If there was a placeholder, replace it. Otherwise, insert after the empty line.
-	if len(lines) > 2 && strings.TrimSpace(lines[2]) == "[SUMMARY_PLACEHOLDER]" {
-		newContentBuilder.WriteString(strings.TrimSpace(finalSummary))
-		newContentBuilder.WriteString("\n\n")                        // Two newlines after the summary
-		newContentBuilder.WriteString(strings.Join(lines[3:], "\n")) // Rest of the content, skipping title, empty line, and placeholder
-	} else {
-		newContentBuilder.WriteString("\n") // Keep the empty line after title
-		newContentBuilder.WriteString(strings.TrimSpace(finalSummary))
-		newContentBuilder.WriteString("\n\n")                        // Two newlines after the summary
-		newContentBuilder.WriteString(strings.Join(lines[2:], "\n")) // Rest of the content, skipping title and empty line
+	// Check if line 1 is HTML comment, if so include it
+	startIdx := 1
+	if len(lines) > 1 && strings.HasPrefix(strings.TrimSpace(lines[1]), "<!--") {
+		newContentBuilder.WriteString(lines[1])
+		newContentBuilder.WriteString("\n")
+		startIdx = 2
+	}
+
+	newContentBuilder.WriteString(strings.TrimSpace(finalSummary))
+	newContentBuilder.WriteString("\n\n")
+
+	// Skip any empty lines after comment
+	for startIdx < len(lines) && strings.TrimSpace(lines[startIdx]) == "" {
+		startIdx++
+	}
+
+	if startIdx < len(lines) {
+		newContentBuilder.WriteString(strings.Join(lines[startIdx:], "\n"))
 	}
 
 	modifiedContent := newContentBuilder.String()
@@ -293,8 +304,8 @@ func ExtractSummary(filePath string) (string, error) {
 	for i := 1; i < len(lines); i++ {
 		trimmedLine := strings.TrimSpace(lines[i])
 
-		if strings.HasPrefix(trimmedLine, "## LOG") {
-			break // Reached the LOG chapter, stop reading summary
+		if strings.HasPrefix(trimmedLine, "# LOG") || strings.HasPrefix(trimmedLine, "# One-line note") {
+			break // Reached the LOG or One-line note section, stop reading summary
 		}
 
 		if trimmedLine == "" {
@@ -302,6 +313,11 @@ func ExtractSummary(filePath string) (string, error) {
 				break
 			}
 			continue // Skip empty lines before the summary starts
+		}
+
+		// Skip HTML comments
+		if strings.HasPrefix(trimmedLine, "<!--") {
+			continue
 		}
 
 		if !readingSummary && strings.HasPrefix(trimmedLine, "#") {
@@ -319,36 +335,3 @@ func ExtractSummary(filePath string) (string, error) {
 	return "", nil // No summary found
 }
 
-// EmbedOneLineNotes embeds one-line summaries into the "One-line note" section of a daily note.
-func EmbedOneLineNotes(filePath string, summaries map[string]string) error {
-	contentBytes, err := os.ReadFile(filePath)
-	if err != nil {
-		return fmt.Errorf("failed to read file %s: %w", filePath, err)
-	}
-
-	content := string(contentBytes)
-	oneLineNoteSection := "## One-line note\n\n"
-
-	// Find the "One-line note" section
-	idx := strings.Index(content, oneLineNoteSection)
-	if idx == -1 {
-		return fmt.Errorf("\"One-line note\" section not found in file %s", filePath)
-	}
-
-	// Build the one-line notes content
-	var oneLineNotesBuilder strings.Builder
-	for key, summary := range summaries {
-		oneLineNotesBuilder.WriteString(fmt.Sprintf("- %s: %s\n", strings.ReplaceAll(key, "_", " "), summary))
-	}
-
-	// Insert the one-line notes after the "## One-line note" line and its immediate newline
-	insertionPoint := idx + len(oneLineNoteSection)
-	updatedContent := content[:insertionPoint] + oneLineNotesBuilder.String() + content[insertionPoint:]
-
-	err = os.WriteFile(filePath, []byte(updatedContent), 0644)
-	if err != nil {
-		return fmt.Errorf("failed to write updated content to %s: %w", filePath, err)
-	}
-
-	return nil
-}
