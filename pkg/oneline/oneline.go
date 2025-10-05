@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"sort"
 	"strings"
 	"time"
 
@@ -12,42 +13,51 @@ import (
 )
 
 // GetPastSummaries retrieves summaries from past daily notes for specified periods.
-// This includes: 1 week ago, 1 month ago, and all past years (as far back as entries exist).
+// This includes: 1 week ago, 1 month ago, 6 months ago, and all past years (as far back as entries exist).
 // If a file exists but has no summary and AI is enabled, it generates one.
+// Returns a map with date keys in YYYY-MM-DD format.
 func GetPastSummaries(cfg *config.Config, targetDate time.Time) (map[string]string, error) {
 	summaries := make(map[string]string)
 
 	// Add fixed periods: 1 week ago, 1 month ago, 6 months ago
-	fixedPeriods := map[string]time.Time{
-		"1_week_ago":   targetDate.AddDate(0, 0, -7),
-		"1_month_ago":  targetDate.AddDate(0, -1, 0),
-		"6_months_ago": targetDate.AddDate(0, -6, 0),
+	fixedPeriods := []time.Time{
+		targetDate.AddDate(0, 0, -7),   // 1 week ago
+		targetDate.AddDate(0, -1, 0),   // 1 month ago
+		targetDate.AddDate(0, -6, 0),   // 6 months ago
 	}
 
-	for key, date := range fixedPeriods {
+	for _, date := range fixedPeriods {
+		dateKey := date.Format("2006-01-02")
 		data := template.TemplateData{Date: date}
 		fileName, err := template.Render(cfg.DailyFileName, data)
 		if err != nil {
-			return nil, fmt.Errorf("failed to render daily file name for %s: %w", key, err)
+			return nil, fmt.Errorf("failed to render daily file name for %s: %w", dateKey, err)
 		}
 		filePath := filepath.Join(cfg.JournalDir, fileName)
 
 		summary := getSummaryWithAIFallback(filePath, cfg)
-		summaries[key] = summary
+		summaries[dateKey] = summary
 	}
 
 	// Add all past years dynamically (check up to 3 years back)
 	for yearsAgo := 1; yearsAgo <= 3; yearsAgo++ {
 		pastDate := targetDate.AddDate(-yearsAgo, 0, 0)
-		key := fmt.Sprintf("%d_years_ago", yearsAgo)
+		dateKey := pastDate.Format("2006-01-02")
 
 		data := template.TemplateData{Date: pastDate}
 		fileName, err := template.Render(cfg.DailyFileName, data)
 		if err != nil {
-			return nil, fmt.Errorf("failed to render daily file name for %s: %w", key, err)
+			return nil, fmt.Errorf("failed to render daily file name for %s: %w", dateKey, err)
 		}
 		filePath := filepath.Join(cfg.JournalDir, fileName)
-		summaries[key] = getSummaryWithAIFallback(filePath, cfg)
+		summary := getSummaryWithAIFallback(filePath, cfg)
+
+		// Only add if entry exists (not missing)
+		// Once we hit a missing year, stop checking further back
+		if summary == "missing" {
+			break
+		}
+		summaries[dateKey] = summary
 	}
 
 	return summaries, nil
@@ -245,19 +255,23 @@ func EmbedOneLineNotes(filePath string, summaries map[string]string) error {
 
 	// Build the one-line notes content
 	var oneLineNotesBuilder strings.Builder
-	// summaries is a map, and we want the summaries in timeline order, so don't use for loops
-	keys := []string{
-		"1_week_ago",
-		"1_month_ago",
-		"6_months_ago",
-		"1_years_ago",
-		"2_years_ago",
-		"3_years_ago",
+
+	// Extract and sort dates in reverse chronological order (most recent first)
+	var dates []string
+	for dateKey := range summaries {
+		dates = append(dates, dateKey)
 	}
-	for _, key := range keys {
-		if _, ok := summaries[key]; ok {
-			oneLineNotesBuilder.WriteString(fmt.Sprintf("* %s: %s\n", strings.ReplaceAll(key, "_", " "), summaries[key]))
-		}
+	// Sort in reverse chronological order
+	sort.Strings(dates)
+	// Reverse the slice to get most recent first
+	for i, j := 0, len(dates)-1; i < j; i, j = i+1, j-1 {
+		dates[i], dates[j] = dates[j], dates[i]
+	}
+
+	// Format each entry with wikilink
+	for _, dateKey := range dates {
+		summary := summaries[dateKey]
+		oneLineNotesBuilder.WriteString(fmt.Sprintf("* [[%s]]: %s\n", dateKey, summary))
 	}
 	oneLineNotesBuilder.WriteString("\n")
 

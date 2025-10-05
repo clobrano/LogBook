@@ -41,12 +41,13 @@ func TestGetPastSummaries(t *testing.T) {
 	// Do not create file for 3 years ago to test breaking the loop
 
 	// Test case 1: Retrieve summaries for past periods
+	// Keys are now date strings in YYYY-MM-DD format
 	expectedSummaries := map[string]string{
-		"1_week_ago":   "Summary for 1 week ago.",
-		"1_month_ago":  "Summary for 1 month ago.",
-		"6_months_ago": "Summary for 6 months ago.",
-		"1_years_ago":  "Summary for 1 year ago.",
-		"2_years_ago":  "Summary for 2 years ago.",
+		"2025-09-13": "Summary for 1 week ago.",
+		"2025-08-20": "Summary for 1 month ago.",
+		"2025-03-20": "Summary for 6 months ago.",
+		"2024-09-20": "Summary for 1 year ago.",
+		"2023-09-20": "Summary for 2 years ago.",
 	}
 
 	actualSummaries, err := GetPastSummaries(cfg, targetDate)

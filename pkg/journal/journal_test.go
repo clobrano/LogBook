@@ -54,12 +54,14 @@ func TestCreateDailyJournalFile(t *testing.T) {
 
 	// Test case 3: Invalid configuration (empty JournalDir)
 	invalidCfg := config.DefaultConfig()
+	invalidCfg.JournalDir = "" // Set to empty to trigger validation error
 	filePath, _, err = CreateDailyJournalFile(invalidCfg, date, nil, nil)
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "invalid configuration: JournalDir cannot be empty")
 
 	// Test case 4: Non-absolute JournalDir
 	invalidCfg = config.DefaultConfig()
+	invalidCfg.JournalDir = "relative/path" // Set to relative path to trigger validation error
 	filePath, _, err = CreateDailyJournalFile(invalidCfg, date, nil, nil)
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "JournalDir must be an absolute path")

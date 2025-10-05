@@ -320,10 +320,13 @@ func TestReviewYear(t *testing.T) {
 	expectedReviewContent := strings.Join([]string{
 		"# Yearly Review - 2025",
 		"AI generated yearly summary.\n",
-		"## Daily Summaries\n",
-		"### 2025-01-01\nSummary for Jan 01.\n",
-		"### 2025-06-15\nSummary for Jun 15.\n",
-		"### 2025-12-31\nSummary for Dec 31.\n",
+		"## Monthly Summaries\n",
+		"### January\n",
+		"- **2025-01-01**: Summary for Jan 01.\n",
+		"### June\n",
+		"- **2025-06-15**: Summary for Jun 15.\n",
+		"### December\n",
+		"- **2025-12-31**: Summary for Dec 31.\n",
 		"",
 	}, "\n")
 	assert.Equal(t, expectedReviewContent, string(reviewContent))
@@ -350,10 +353,13 @@ func TestReviewYear(t *testing.T) {
 	expectedManualReviewContent := strings.Join([]string{
 		"# Yearly Review - 2025",
 		"This is a manual yearly summary.\n",
-		"## Daily Summaries\n",
-		"### 2025-01-01\nSummary for Jan 01.\n",
-		"### 2025-06-15\nSummary for Jun 15.\n",
-		"### 2025-12-31\nSummary for Dec 31.\n",
+		"## Monthly Summaries\n",
+		"### January\n",
+		"- **2025-01-01**: Summary for Jan 01.\n",
+		"### June\n",
+		"- **2025-06-15**: Summary for Jun 15.\n",
+		"### December\n",
+		"- **2025-12-31**: Summary for Dec 31.\n",
 		"",
 	}, "\n")
 	assert.Equal(t, expectedManualReviewContent, string(reviewContent))
