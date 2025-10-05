@@ -27,7 +27,7 @@ func DefaultConfig() *Config {
 	return &Config{
 		JournalDir:       filepath.Join(os.Getenv("HOME"), ".logbook", "journal"),
 		DailyFileName:    "{{.Date | formatDate \"2006-01-02\"}}.md",
-		DailyTemplate:    "# {{.Date | formatDate \"Jan 02 2006 Monday\"}}\n\n## LOG\n\n## One-line note\n\n",
+		DailyTemplate:    "# {{.Date | formatDate \"Jan 02 2006 Monday\"}}\n<!-- add today summary below this line. If missing, the AI will generate one for you according to configuration file -->\n\n# One-line note\n\n# LOG\n\n",
 		LogEntryTemplate: "{{.Time | formatTime \"15:04\"}} {{.Entry}}",
 		AIEnabled:        false,
 		AICommand:        "", // Example: "gemini --prompt '{PROMPT} {TEXT}'" or "claude --text '{TEXT}' --instructions '{PROMPT}'"

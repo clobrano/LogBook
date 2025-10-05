@@ -10,7 +10,8 @@
       "Bash(./logbook log \"Testing AI summary persistence\")",
       "Read(//home/carlo/.logbook/journal/**)",
       "Bash(./logbook log \"testing shell escaping fix\")",
-      "Bash(./logbook log:*)"
+      "Bash(./logbook log:*)",
+      "Bash(git commit:*)"
     ],
     "deny": [],
     "ask": []

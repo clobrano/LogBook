@@ -13,7 +13,7 @@ func TestDefaultConfig(t *testing.T) {
 
 	assert.Equal(t, filepath.Join(os.Getenv("HOME"), ".logbook", "journal"), cfg.JournalDir)
 	assert.Equal(t, "{{.Date | formatDate \"2006-01-02\"}}.md", cfg.DailyFileName)
-	assert.Equal(t, "# {{.Date | formatDate \"Jan 02 2006 Monday\"}}\n\n[SUMMARY_PLACEHOLDER]\n\n## LOG\n\n## One-line note\n\n", cfg.DailyTemplate)
+	assert.Equal(t, "# {{.Date | formatDate \"Jan 02 2006 Monday\"}}\n<!-- add today summary below this line. If missing, the AI will generate one for you according to configuration file -->\n\n# One-line note\n\n# LOG\n\n", cfg.DailyTemplate)
 	assert.Equal(t, "{{.Time | formatTime \"15:04\"}} {{.Entry}}", cfg.LogEntryTemplate)
 	assert.False(t, cfg.AIEnabled)
 	assert.Equal(t, "Write a summary of the note at the given file. Use 1st person and a simple language. Use 200 characters or less", cfg.AIPrompt)
@@ -72,7 +72,7 @@ func TestSaveConfig(t *testing.T) {
 
 	expectedContent := `journal_dir = "/path/to/journal"
 daily_file_name = "{{.Date | formatDate \"2006-01-02\"}}.md"
-daily_template = "# {{.Date | formatDate \"Jan 02 2006 Monday\"}}\n\n[SUMMARY_PLACEHOLDER]\n\n## LOG\n\n## One-line note\n\n"
+daily_template = "# {{.Date | formatDate \"Jan 02 2006 Monday\"}}\n<!-- add today summary below this line. If missing, the AI will generate one for you according to configuration file -->\n\n# One-line note\n\n# LOG\n\n"
 log_entry_template = "{{.Time | formatTime \"15:04\"}} {{.Entry}}"
 ai_enabled = true
 ai_command = ""
