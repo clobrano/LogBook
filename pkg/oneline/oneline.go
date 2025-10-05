@@ -21,9 +21,9 @@ func GetPastSummaries(cfg *config.Config, targetDate time.Time) (map[string]stri
 
 	// Add fixed periods: 1 week ago, 1 month ago, 6 months ago
 	fixedPeriods := []time.Time{
-		targetDate.AddDate(0, 0, -7),   // 1 week ago
-		targetDate.AddDate(0, -1, 0),   // 1 month ago
-		targetDate.AddDate(0, -6, 0),   // 6 months ago
+		targetDate.AddDate(0, 0, -7), // 1 week ago
+		targetDate.AddDate(0, -1, 0), // 1 month ago
+		targetDate.AddDate(0, -6, 0), // 6 months ago
 	}
 
 	for _, date := range fixedPeriods {
