@@ -91,39 +91,6 @@ Examples:
 
 			fmt.Printf("Default configuration file created at: %s\n", configFilePath)
 			os.Exit(0)
-		case "log":
-			cfg, err = config.LoadConfig(configFilePath)
-			if err != nil {
-				fmt.Printf("Error loading configuration: %v\n", err)
-				os.Exit(1)
-			}
-			if len(os.Args) < 3 {
-				fmt.Println("Usage: logbook log <entry>")
-				os.Exit(1)
-			}
-			entry := strings.Join(os.Args[2:], " ")
-
-			now := time.Now()
-			journalFilePath, message, err := journal.CreateDailyJournalFile(cfg, now, cfg.AISummarizer, os.Stdin)
-			if err != nil {
-				fmt.Printf("Error creating/getting daily journal file: %v\n", err)
-				os.Exit(1)
-			}
-			fmt.Println(message)
-
-			err = journal.AppendToLog(cfg, journalFilePath, entry, now)
-			if err != nil {
-				fmt.Printf("Error appending to log: %v\n", err)
-				os.Exit(1)
-			}
-			fmt.Println("Entry added to log.")
-
-			// Finalize the daily file: embed one-line notes
-			err = journal.FinalizeDailyFile(cfg, journalFilePath, now)
-			if err != nil {
-				fmt.Printf("Error finalizing daily file: %v\n", err)
-				os.Exit(1)
-			}
 		case "review":
 			cfg, err = config.LoadConfig(configFilePath)
 			if err != nil {
@@ -232,6 +199,8 @@ Examples:
 				fmt.Println("Unknown review subcommand. Use 'logbook review help' for more information.")
 				os.Exit(1)
 			}
+		case "log":
+			fallthrough
 		default:
 			// Treat unknown commands as log entries (default action)
 			cfg, err = config.LoadConfig(configFilePath)
@@ -239,8 +208,17 @@ Examples:
 				fmt.Printf("Error loading configuration: %v\n", err)
 				os.Exit(1)
 			}
-			// All arguments from position 1 onwards are the entry
-			entry := strings.Join(os.Args[1:], " ")
+
+			// Determine entry position based on whether first arg is "log"
+			startPos := 1
+			if os.Args[1] == "log" {
+				if len(os.Args) < 3 {
+					fmt.Println("Usage: logbook log <entry>")
+					os.Exit(1)
+				}
+				startPos = 2
+			}
+			entry := strings.Join(os.Args[startPos:], " ")
 
 			now := time.Now()
 			journalFilePath, message, err := journal.CreateDailyJournalFile(cfg, now, cfg.AISummarizer, os.Stdin)
