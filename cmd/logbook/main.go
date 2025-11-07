@@ -34,12 +34,14 @@ func main() {
 Usage:
 
   logbook <command> [arguments]
+  logbook <entry text>  (log is the default action)
 
 Available Commands:
   config  Create a default configuration file.
   help    Display help information for LogBook.
   log     Add an entry to today's journal.
           Usage: logbook log <your entry text>
+          Note: You can omit 'log' and just type: logbook <your entry text>
   review  Perform a review of journal entries for a specific period.
           Usage:
             logbook review week [week number] [year] (defaults to current week/year)
@@ -49,6 +51,7 @@ Available Commands:
 Examples:
   logbook config
   logbook log "Started working on the LogBook help command."
+  logbook "Started working on the LogBook help command."  (same as above)
   logbook review week 38 2025
   logbook review month September 2025
   logbook review year 2025`)
@@ -230,8 +233,36 @@ Examples:
 				os.Exit(1)
 			}
 		default:
-			fmt.Println("Unknown command. Use 'logbook help' for more information.")
-			os.Exit(1)
+			// Treat unknown commands as log entries (default action)
+			cfg, err = config.LoadConfig(configFilePath)
+			if err != nil {
+				fmt.Printf("Error loading configuration: %v\n", err)
+				os.Exit(1)
+			}
+			// All arguments from position 1 onwards are the entry
+			entry := strings.Join(os.Args[1:], " ")
+
+			now := time.Now()
+			journalFilePath, message, err := journal.CreateDailyJournalFile(cfg, now, cfg.AISummarizer, os.Stdin)
+			if err != nil {
+				fmt.Printf("Error creating/getting daily journal file: %v\n", err)
+				os.Exit(1)
+			}
+			fmt.Println(message)
+
+			err = journal.AppendToLog(cfg, journalFilePath, entry, now)
+			if err != nil {
+				fmt.Printf("Error appending to log: %v\n", err)
+				os.Exit(1)
+			}
+			fmt.Println("Entry added to log.")
+
+			// Finalize the daily file: embed one-line notes
+			err = journal.FinalizeDailyFile(cfg, journalFilePath, now)
+			if err != nil {
+				fmt.Printf("Error finalizing daily file: %v\n", err)
+				os.Exit(1)
+			}
 		}
 	} else {
 		fmt.Println("Welcome to LogBook! Use 'logbook help' for more information.")
