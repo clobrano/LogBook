@@ -55,31 +55,6 @@ func ReviewWeek(cfg *config.Config, week int, year int, summarizer ai.AISummariz
 	var reviewContentBuilder strings.Builder
 	reviewContentBuilder.WriteString(fmt.Sprintf("# Weekly Review - Week %d, %d\n\n", week, year))
 
-	// Write to a temporary review file for now
-	reviewFilePath := filepath.Join(cfg.JournalDir, fmt.Sprintf("review_week_%d_%d.md", year, week))
-	if err := os.MkdirAll(filepath.Dir(reviewFilePath), 0755); err != nil {
-		return "", fmt.Errorf("failed to create directory for weekly review file: %w", err)
-	}
-	err = os.WriteFile(reviewFilePath, []byte(reviewContentBuilder.String()), 0644)
-	if err != nil {
-		return "", fmt.Errorf("failed to write weekly review file: %w", err)
-	}
-
-	// Generate summary for the review file if missing
-	reviewSummaryPrompt := "Write a summary of the weekly review using the same Language. Use 1st person and a simple language. Use 200 characters or less."
-	err = journal.GenerateSummaryIfMissing(reviewFilePath, cfg, summarizer, reviewSummaryPrompt, reader)
-	if err != nil {
-		return "", fmt.Errorf("failed to generate summary for weekly review: %w", err)
-	}
-
-	// Read the content again after summary generation
-	reviewContentBytes, err := os.ReadFile(reviewFilePath)
-	if err != nil {
-		return "", fmt.Errorf("failed to read weekly review file after summary generation: %w", err)
-	}
-	reviewContentBuilder.Reset()
-	reviewContentBuilder.Write(reviewContentBytes)
-
 	if len(journalFiles) == 0 {
 		reviewContentBuilder.WriteString("No journal entries found for this week.\n\n")
 	} else {
@@ -91,13 +66,24 @@ func ReviewWeek(cfg *config.Config, week int, year int, summarizer ai.AISummariz
 			}
 			fileName := filepath.Base(filePath)
 			dateStr := strings.TrimSuffix(fileName, ".md") // Assuming .md extension
-			reviewContentBuilder.WriteString(fmt.Sprintf("### %s\n%s\n\n", dateStr, summary))
+			reviewContentBuilder.WriteString(fmt.Sprintf("### [[%s]]\n%s\n\n", dateStr, summary))
 		}
 	}
 
+	reviewFilePath := filepath.Join(cfg.JournalDir, fmt.Sprintf("review_week_%d_%d.md", year, week))
+	if err := os.MkdirAll(filepath.Dir(reviewFilePath), 0755); err != nil {
+		return "", fmt.Errorf("failed to create directory for weekly review file: %w", err)
+	}
 	err = os.WriteFile(reviewFilePath, []byte(reviewContentBuilder.String()), 0644)
 	if err != nil {
 		return "", fmt.Errorf("failed to write weekly review file: %w", err)
+	}
+
+	// Generate summary for the review file if missing
+	reviewSummaryPrompt := "Write a summary of the weekly review using the same Language. Use 1st person and a simple language. Use 200 words or less, in Italian. Keep a positive tone."
+	err = journal.GenerateSummaryIfMissing(reviewFilePath, cfg, summarizer, reviewSummaryPrompt, reader)
+	if err != nil {
+		return "", fmt.Errorf("failed to generate summary for weekly review: %w", err)
 	}
 
 	return color.GreenString("Weekly review generated at: %s", reviewFilePath), nil
@@ -128,28 +114,6 @@ func ReviewMonth(cfg *config.Config, month string, year int, summarizer ai.AISum
 	var reviewContentBuilder strings.Builder
 	reviewContentBuilder.WriteString(fmt.Sprintf("# Monthly Review - %s %d\n\n", month, year))
 
-	reviewFilePath := filepath.Join(cfg.JournalDir, fmt.Sprintf("review_month_%s_%d.md", month, year))
-	if err := os.MkdirAll(filepath.Dir(reviewFilePath), 0755); err != nil {
-		return "", fmt.Errorf("failed to create directory for monthly review file: %w", err)
-	}
-	err = os.WriteFile(reviewFilePath, []byte(reviewContentBuilder.String()), 0644)
-	if err != nil {
-		return "", fmt.Errorf("failed to write monthly review file: %w", err)
-	}
-
-	reviewSummaryPrompt := "Write a summary of the monthly review. Use 1st person and a simple language. Use 200 characters or less."
-	err = journal.GenerateSummaryIfMissing(reviewFilePath, cfg, summarizer, reviewSummaryPrompt, reader)
-	if err != nil {
-		return "", fmt.Errorf("failed to generate summary for monthly review: %w", err)
-	}
-
-	reviewContentBytes, err := os.ReadFile(reviewFilePath)
-	if err != nil {
-		return "", fmt.Errorf("failed to read monthly review file after summary generation: %w", err)
-	}
-	reviewContentBuilder.Reset()
-	reviewContentBuilder.Write(reviewContentBytes)
-
 	if len(journalFiles) == 0 {
 		reviewContentBuilder.WriteString("No journal entries found for this month.\n\n")
 	} else {
@@ -165,9 +129,19 @@ func ReviewMonth(cfg *config.Config, month string, year int, summarizer ai.AISum
 		}
 	}
 
+	reviewFilePath := filepath.Join(cfg.JournalDir, fmt.Sprintf("review_month_%d_%d.md", monthNum, year))
+	if err := os.MkdirAll(filepath.Dir(reviewFilePath), 0755); err != nil {
+		return "", fmt.Errorf("failed to create directory for monthly review file: %w", err)
+	}
 	err = os.WriteFile(reviewFilePath, []byte(reviewContentBuilder.String()), 0644)
 	if err != nil {
 		return "", fmt.Errorf("failed to write monthly review file: %w", err)
+	}
+
+	reviewSummaryPrompt := "Write a summary of the monthly review. Use 1st person and a simple language. Use 200 words or less in Italian. Keep a positive tone."
+	err = journal.GenerateSummaryIfMissing(reviewFilePath, cfg, summarizer, reviewSummaryPrompt, reader)
+	if err != nil {
+		return "", fmt.Errorf("failed to generate summary for monthly review: %w", err)
 	}
 
 	return color.GreenString("Monthly review generated at: %s", reviewFilePath), nil
