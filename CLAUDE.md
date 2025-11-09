@@ -8,12 +8,23 @@ LogBook is a command-line journaling application written in Go that streamlines 
 
 ## Commands
 
-### Building
+### Installing
+```bash
+# Install the latest version directly from GitHub
+go install github.com/clobrano/LogBook@latest
+
+# The binary will be installed to $GOPATH/bin (usually ~/go/bin)
+```
+
+### Building from Source
 ```bash
 # Build the binary
-go build -o logbook cmd/logbook/main.go
+go build
 
-# The binary will be created as `logbook` in the current directory
+# Or install locally
+go install
+
+# The binary will be created as `LogBook` in the current directory (or $GOPATH/bin for install)
 ```
 
 ### Running Tests
@@ -36,25 +47,25 @@ go test -run TestFunctionName ./pkg/packagename
 ### Running the Application
 ```bash
 # Show help
-./logbook help
+./LogBook help
 
 # Create default configuration file at ~/.config/logbook/config.toml
-./logbook config
+./LogBook config
 
 # Add an entry to today's journal
-./logbook log "Your journal entry text"
+./LogBook log "Your journal entry text"
 
 # Perform reviews
-./logbook review week [week_number] [year]
-./logbook review month [month_name] [year]
-./logbook review year [year]
+./LogBook review week [week_number] [year]
+./LogBook review month [month_name] [year]
+./LogBook review year [year]
 ```
 
 ## Architecture
 
 ### Project Structure
 ```
-cmd/logbook/         # Main application entry point
+main.go              # Main application entry point
 pkg/
   ├── ai/           # AI summarization interface and implementations
   ├── config/       # Configuration loading/saving (TOML)
