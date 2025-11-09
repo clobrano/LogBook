@@ -11,28 +11,34 @@ import (
 
 // Config represents the application's configuration.
 type Config struct {
-	JournalDir       string `toml:"journal_dir"`
-	DailyFileName    string `toml:"daily_file_name"`
-	DailyTemplate    string `toml:"daily_template"`
-	LogEntryTemplate string `toml:"log_entry_template"`
-	AIEnabled        bool   `toml:"ai_enabled"`
-	AICommand        string `toml:"ai_command"`
-	AIPrompt         string `toml:"ai_prompt"`
-	OneLineTemplate  string `toml:"one_line_template"`
-	AISummarizer     ai.AISummarizer `toml:"-"` // Not serialized to TOML
+	JournalDir        string `toml:"journal_dir"`
+	DailyFileName     string `toml:"daily_file_name"`
+	DailyTemplate     string `toml:"daily_template"`
+	LogEntryTemplate  string `toml:"log_entry_template"`
+	AIEnabled         bool   `toml:"ai_enabled"`
+	AICommand         string `toml:"ai_command"`
+	AIPrompt          string `toml:"ai_prompt"`
+	ReviewWeekPrompt  string `toml:"review_week_prompt"`
+	ReviewMonthPrompt string `toml:"review_month_prompt"`
+	ReviewYearPrompt  string `toml:"review_year_prompt"`
+	OneLineTemplate   string `toml:"one_line_template"`
+	AISummarizer      ai.AISummarizer `toml:"-"` // Not serialized to TOML
 }
 
 // DefaultConfig returns a new Config with default values.
 func DefaultConfig() *Config {
 	return &Config{
-		JournalDir:       filepath.Join(os.Getenv("HOME"), ".logbook", "journal"),
-		DailyFileName:    "{{.Date | formatDate \"2006-01-02\"}}.md",
-		DailyTemplate:    "# {{.Date | formatDate \"Jan 02 2006 Monday\"}}\n<!-- add today summary below this line. If missing, the AI will generate one for you according to configuration file -->\n\n# One-line note\n\n# LOG\n\n",
-		LogEntryTemplate: "{{.Time | formatTime \"15:04\"}} {{.Entry}}",
-		AIEnabled:        false,
-		AICommand:        "", // Example: "gemini --prompt '{PROMPT} {TEXT}'" or "claude --text '{TEXT}' --instructions '{PROMPT}'"
-		AIPrompt:         "Write a summary of the note at the given file. Use 1st person and a simple language. Use 200 characters or less",
-		OneLineTemplate:  "{{.Date | formatDate \"2006-01-02\"}}: {{.Summary}}",
+		JournalDir:        filepath.Join(os.Getenv("HOME"), ".logbook", "journal"),
+		DailyFileName:     "{{.Date | formatDate \"2006-01-02\"}}.md",
+		DailyTemplate:     "# {{.Date | formatDate \"Jan 02 2006 Monday\"}}\n<!-- add today summary below this line. If missing, the AI will generate one for you according to configuration file -->\n\n# One-line note\n\n# LOG\n\n",
+		LogEntryTemplate:  "{{.Time | formatTime \"15:04\"}} {{.Entry}}",
+		AIEnabled:         false,
+		AICommand:         "", // Example: "gemini --prompt '{PROMPT} {TEXT}'" or "claude --text '{TEXT}' --instructions '{PROMPT}'"
+		AIPrompt:          "Write a summary of the note at the given file. Use 1st person and a simple language. Use 200 characters or less",
+		ReviewWeekPrompt:  "Write a summary of the weekly review using the same Language. Use 1st person and a simple language. Use 200 characters or less.",
+		ReviewMonthPrompt: "Write a summary of the monthly review. Use 1st person and a simple language. Use 200 characters or less.",
+		ReviewYearPrompt:  "Write a summary of the yearly review. Use 1st person and a simple language. Use 200 characters or less.",
+		OneLineTemplate:   "{{.Date | formatDate \"2006-01-02\"}}: {{.Summary}}",
 	}
 }
 
