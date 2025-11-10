@@ -78,12 +78,12 @@ func TestReviewWeek(t *testing.T) {
 		"# Weekly Review - Week 38, 2025",
 		"AI generated weekly summary.\n",
 		"## Daily Summaries\n",
-		"### 2025-09-15\nSummary for Sep 15.\n",
-		"### 2025-09-16\nSummary for Sep 16.\n",
-		"### 2025-09-17\nSummary for Sep 17.\n",
-		"### 2025-09-19\nSummary for Sep 19.\n",
-		"### 2025-09-20\nSummary for Sep 20.\n",
-		"### 2025-09-21\nSummary for Sep 21.\n",
+		"### [[2025-09-15]]\nSummary for Sep 15.\n",
+		"### [[2025-09-16]]\nSummary for Sep 16.\n",
+		"### [[2025-09-17]]\nSummary for Sep 17.\n",
+		"### [[2025-09-19]]\nSummary for Sep 19.\n",
+		"### [[2025-09-20]]\nSummary for Sep 20.\n",
+		"### [[2025-09-21]]\nSummary for Sep 21.\n",
 		"",
 	}, "\n")
 	assert.Equal(t, expectedReviewContent, string(reviewContent))
@@ -111,12 +111,12 @@ func TestReviewWeek(t *testing.T) {
 		"# Weekly Review - Week 38, 2025",
 		"This is a manual weekly summary.\n", // This line is changed
 		"## Daily Summaries\n",
-		"### 2025-09-15\nSummary for Sep 15.\n",
-		"### 2025-09-16\nSummary for Sep 16.\n",
-		"### 2025-09-17\nSummary for Sep 17.\n",
-		"### 2025-09-19\nSummary for Sep 19.\n",
-		"### 2025-09-20\nSummary for Sep 20.\n",
-		"### 2025-09-21\nSummary for Sep 21.\n",
+		"### [[2025-09-15]]\nSummary for Sep 15.\n",
+		"### [[2025-09-16]]\nSummary for Sep 16.\n",
+		"### [[2025-09-17]]\nSummary for Sep 17.\n",
+		"### [[2025-09-19]]\nSummary for Sep 19.\n",
+		"### [[2025-09-20]]\nSummary for Sep 20.\n",
+		"### [[2025-09-21]]\nSummary for Sep 21.\n",
 		"",
 	}, "\n")
 	assert.Equal(t, expectedManualReviewContent, string(reviewContent))

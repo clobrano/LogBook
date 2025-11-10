@@ -80,8 +80,7 @@ func ReviewWeek(cfg *config.Config, week int, year int, summarizer ai.AISummariz
 	}
 
 	// Generate summary for the review file if missing
-	reviewSummaryPrompt := "Write a summary of the weekly review using the same Language. Use 1st person and a simple language. Use 200 words or less, in Italian. Keep a positive tone."
-	err = journal.GenerateSummaryIfMissing(reviewFilePath, cfg, summarizer, reviewSummaryPrompt, reader)
+	err = journal.GenerateSummaryIfMissing(reviewFilePath, cfg, summarizer, cfg.ReviewWeekPrompt, reader)
 	if err != nil {
 		return "", fmt.Errorf("failed to generate summary for weekly review: %w", err)
 	}
@@ -138,8 +137,7 @@ func ReviewMonth(cfg *config.Config, month string, year int, summarizer ai.AISum
 		return "", fmt.Errorf("failed to write monthly review file: %w", err)
 	}
 
-	reviewSummaryPrompt := "Write a summary of the monthly review. Use 1st person and a simple language. Use 200 words or less in Italian. Keep a positive tone."
-	err = journal.GenerateSummaryIfMissing(reviewFilePath, cfg, summarizer, reviewSummaryPrompt, reader)
+	err = journal.GenerateSummaryIfMissing(reviewFilePath, cfg, summarizer, cfg.ReviewMonthPrompt, reader)
 	if err != nil {
 		return "", fmt.Errorf("failed to generate summary for monthly review: %w", err)
 	}
@@ -169,8 +167,7 @@ func ReviewYear(cfg *config.Config, year int, summarizer ai.AISummarizer, reader
 		return "", fmt.Errorf("failed to write yearly review file: %w", err)
 	}
 
-	reviewSummaryPrompt := "Write a summary of the yearly review. Use 1st person and a simple language. Use 200 characters or less."
-	err = journal.GenerateSummaryIfMissing(reviewFilePath, cfg, summarizer, reviewSummaryPrompt, reader)
+	err = journal.GenerateSummaryIfMissing(reviewFilePath, cfg, summarizer, cfg.ReviewYearPrompt, reader)
 	if err != nil {
 		return "", fmt.Errorf("failed to generate summary for yearly review: %w", err)
 	}

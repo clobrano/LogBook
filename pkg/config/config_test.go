@@ -17,6 +17,9 @@ func TestDefaultConfig(t *testing.T) {
 	assert.Equal(t, "{{.Time | formatTime \"15:04\"}} {{.Entry}}", cfg.LogEntryTemplate)
 	assert.False(t, cfg.AIEnabled)
 	assert.Equal(t, "Write a summary of the note at the given file. Use 1st person and a simple language. Use 200 characters or less", cfg.AIPrompt)
+	assert.Equal(t, "Write a summary of the weekly review using the same Language. Use 1st person and a simple language. Use 200 characters or less.", cfg.ReviewWeekPrompt)
+	assert.Equal(t, "Write a summary of the monthly review. Use 1st person and a simple language. Use 200 characters or less.", cfg.ReviewMonthPrompt)
+	assert.Equal(t, "Write a summary of the yearly review. Use 1st person and a simple language. Use 200 characters or less.", cfg.ReviewYearPrompt)
 	assert.Equal(t, "{{.Date | formatDate \"2006-01-02\"}}: {{.Summary}}", cfg.OneLineTemplate)
 }
 
@@ -77,6 +80,9 @@ log_entry_template = "{{.Time | formatTime \"15:04\"}} {{.Entry}}"
 ai_enabled = true
 ai_command = ""
 ai_prompt = "Write a summary of the note at the given file. Use 1st person and a simple language. Use 200 characters or less"
+review_week_prompt = "Write a summary of the weekly review using the same Language. Use 1st person and a simple language. Use 200 characters or less."
+review_month_prompt = "Write a summary of the monthly review. Use 1st person and a simple language. Use 200 characters or less."
+review_year_prompt = "Write a summary of the yearly review. Use 1st person and a simple language. Use 200 characters or less."
 one_line_template = "{{.Date | formatDate \"2006-01-02\"}}: {{.Summary}}"
 `
 	assert.Equal(t, expectedContent, string(content))
