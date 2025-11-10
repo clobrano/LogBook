@@ -9,13 +9,15 @@ import (
 	"github.com/clobrano/LogBook/pkg/config"
 	"github.com/clobrano/LogBook/pkg/template"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestGetPastSummaries(t *testing.T) {
 	// Setup a temporary journal directory
 	tmpDir := t.TempDir()
 
-	cfg := config.DefaultConfig()
+	cfg, err := config.DefaultConfig()
+	require.NoError(t, err)
 	cfg.JournalDir = tmpDir
 	cfg.DailyFileName = "{{.Date | formatDate \"2006-01-02\"}}.md"
 	cfg.DailyTemplate = "# {{.Date | formatDate \"Jan 02 2006 Monday\"}}\n\n{{.Summary}}\n\n## LOG\n"

@@ -13,6 +13,7 @@ import (
 	"github.com/clobrano/LogBook/pkg/config"
 	"github.com/clobrano/LogBook/pkg/template"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 // ErrorReader is a mock io.Reader that always returns an error.
@@ -28,7 +29,8 @@ func TestReviewWeek(t *testing.T) {
 	// Setup a temporary journal directory
 	tmpDir := t.TempDir()
 
-	cfg := config.DefaultConfig()
+	cfg, err := config.DefaultConfig()
+	require.NoError(t, err)
 	cfg.JournalDir = tmpDir
 	cfg.DailyFileName = "{{.Date | formatDate \"2006-01-02\"}}.md"
 	cfg.DailyTemplate = "# {{.Date | formatDate \"Jan 02 2006 Monday\"}}\n\n{{.Summary}}\n\n## LOG\n"
@@ -57,7 +59,8 @@ func TestReviewWeek(t *testing.T) {
 
 	// Test case 1: AI-generated summary for review
 	aiSummarizer := &ai.MockAISummarizer{Summary: "AI generated weekly summary.", Err: nil}
-	aiCfg := config.DefaultConfig()
+	aiCfg, err := config.DefaultConfig()
+	require.NoError(t, err)
 	aiCfg.JournalDir = tmpDir
 	aiCfg.DailyFileName = cfg.DailyFileName
 	aiCfg.DailyTemplate = cfg.DailyTemplate
@@ -91,7 +94,8 @@ func TestReviewWeek(t *testing.T) {
 	// Test case 2: Manual summary for review
 	manualSummaryInput := "This is a manual weekly summary.\n"
 	manualReader := strings.NewReader(manualSummaryInput)
-	manualCfg := config.DefaultConfig()
+	manualCfg, err := config.DefaultConfig()
+	require.NoError(t, err)
 	manualCfg.JournalDir = tmpDir
 	manualCfg.DailyFileName = cfg.DailyFileName
 	manualCfg.DailyTemplate = cfg.DailyTemplate
@@ -123,7 +127,8 @@ func TestReviewWeek(t *testing.T) {
 
 	// Test case 3: No journal entries for the week (manual summary skipped)
 	noEntriesTmpDir := t.TempDir()
-	noEntriesCfg := config.DefaultConfig()
+	noEntriesCfg, err := config.DefaultConfig()
+	require.NoError(t, err)
 	noEntriesCfg.JournalDir = noEntriesTmpDir
 	noEntriesCfg.DailyFileName = cfg.DailyFileName
 	noEntriesCfg.DailyTemplate = cfg.DailyTemplate
@@ -156,7 +161,8 @@ func TestReviewMonth(t *testing.T) {
 	// Setup a temporary journal directory
 	tmpDir := t.TempDir()
 
-	cfg := config.DefaultConfig()
+	cfg, err := config.DefaultConfig()
+	require.NoError(t, err)
 	cfg.JournalDir = tmpDir
 	cfg.DailyFileName = "{{.Date | formatDate \"2006-01-02\"}}" + ".md"
 	cfg.DailyTemplate = "# {{.Date | formatDate \"Jan 02 2006 Monday\"}}\n\n{{.Summary}}\n\n## LOG\n"
@@ -181,7 +187,8 @@ func TestReviewMonth(t *testing.T) {
 
 	// Test case 1: AI-generated summary for review
 	aiSummarizer := &ai.MockAISummarizer{Summary: "AI generated monthly summary.", Err: nil}
-	aiCfg := config.DefaultConfig()
+	aiCfg, err := config.DefaultConfig()
+	require.NoError(t, err)
 	aiCfg.JournalDir = tmpDir
 	aiCfg.DailyFileName = cfg.DailyFileName
 	aiCfg.DailyTemplate = cfg.DailyTemplate
@@ -212,7 +219,8 @@ func TestReviewMonth(t *testing.T) {
 	// Test case 2: Manual summary for review
 	manualSummaryInput := "This is a manual monthly summary.\n"
 	manualReader := strings.NewReader(manualSummaryInput)
-	manualCfg := config.DefaultConfig()
+	manualCfg, err := config.DefaultConfig()
+	require.NoError(t, err)
 	manualCfg.JournalDir = tmpDir
 	manualCfg.DailyFileName = cfg.DailyFileName
 	manualCfg.DailyTemplate = cfg.DailyTemplate
@@ -241,7 +249,8 @@ func TestReviewMonth(t *testing.T) {
 
 	// Test case 3: No journal entries for the month (manual summary skipped)
 	noEntriesTmpDir := t.TempDir()
-	noEntriesCfg := config.DefaultConfig()
+	noEntriesCfg, err := config.DefaultConfig()
+	require.NoError(t, err)
 	noEntriesCfg.JournalDir = noEntriesTmpDir
 	noEntriesCfg.DailyFileName = cfg.DailyFileName
 	noEntriesCfg.DailyTemplate = cfg.DailyTemplate
@@ -276,7 +285,8 @@ func TestReviewYear(t *testing.T) {
 	// Setup a temporary journal directory
 	tmpDir := t.TempDir()
 
-	cfg := config.DefaultConfig()
+	cfg, err := config.DefaultConfig()
+	require.NoError(t, err)
 	cfg.JournalDir = tmpDir
 	cfg.DailyFileName = "{{.Date | formatDate \"2006-01-02\"}}" + ".md"
 	cfg.DailyTemplate = "# {{.Date | formatDate \"Jan 02 2006 Monday\"}}\n\n{{.Summary}}\n\n## LOG\n"
@@ -300,7 +310,8 @@ func TestReviewYear(t *testing.T) {
 
 	// Test case 1: AI-generated summary for review
 	aiSummarizer := &ai.MockAISummarizer{Summary: "AI generated yearly summary.", Err: nil}
-	aiCfg := config.DefaultConfig()
+	aiCfg, err := config.DefaultConfig()
+	require.NoError(t, err)
 	aiCfg.JournalDir = tmpDir
 	aiCfg.DailyFileName = cfg.DailyFileName
 	aiCfg.DailyTemplate = cfg.DailyTemplate
@@ -334,7 +345,8 @@ func TestReviewYear(t *testing.T) {
 	// Test case 2: Manual summary for review
 	manualSummaryInput := "This is a manual yearly summary.\n"
 	manualReader := strings.NewReader(manualSummaryInput)
-	manualCfg := config.DefaultConfig()
+	manualCfg, err := config.DefaultConfig()
+	require.NoError(t, err)
 	manualCfg.JournalDir = tmpDir
 	manualCfg.DailyFileName = cfg.DailyFileName
 	manualCfg.DailyTemplate = cfg.DailyTemplate
@@ -366,7 +378,8 @@ func TestReviewYear(t *testing.T) {
 
 	// Test case 3: No journal entries for the year (manual summary skipped)
 	noEntriesTmpDir := t.TempDir()
-	noEntriesCfg := config.DefaultConfig()
+	noEntriesCfg, err := config.DefaultConfig()
+	require.NoError(t, err)
 	noEntriesCfg.JournalDir = noEntriesTmpDir
 	noEntriesCfg.DailyFileName = cfg.DailyFileName
 	noEntriesCfg.DailyTemplate = cfg.DailyTemplate

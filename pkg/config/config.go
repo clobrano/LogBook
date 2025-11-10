@@ -3,6 +3,7 @@ package config
 import (
 	"fmt"
 	"os"
+	"os/user"
 	"path/filepath"
 
 	"github.com/BurntSushi/toml"
@@ -26,9 +27,20 @@ type Config struct {
 }
 
 // DefaultConfig returns a new Config with default values.
-func DefaultConfig() *Config {
+// Returns an error if the user's home directory cannot be determined.
+func DefaultConfig() (*Config, error) {
+	homeDir := os.Getenv("HOME")
+	if homeDir == "" {
+		// Fallback to user.Current() if HOME is not set
+		usr, err := user.Current()
+		if err != nil {
+			return nil, fmt.Errorf("cannot determine home directory: %w", err)
+		}
+		homeDir = usr.HomeDir
+	}
+
 	return &Config{
-		JournalDir:        filepath.Join(os.Getenv("HOME"), ".logbook", "journal"),
+		JournalDir:        filepath.Join(homeDir, ".logbook", "journal"),
 		DailyFileName:     "{{.Date | formatDate \"2006-01-02\"}}.md",
 		DailyTemplate:     "# {{.Date | formatDate \"Jan 02 2006 Monday\"}}\n<!-- add today summary below this line. If missing, the AI will generate one for you according to configuration file -->\n\n# One-line note\n\n# LOG\n\n",
 		LogEntryTemplate:  "{{.Time | formatTime \"15:04\"}} {{.Entry}}",
@@ -39,13 +51,17 @@ func DefaultConfig() *Config {
 		ReviewMonthPrompt: "Write a summary of the monthly review. Use 1st person and a simple language. Use 200 characters or less.",
 		ReviewYearPrompt:  "Write a summary of the yearly review. Use 1st person and a simple language. Use 200 characters or less.",
 		OneLineTemplate:   "{{.Date | formatDate \"2006-01-02\"}}: {{.Summary}}",
-	}
+	}, nil
 }
 
 // LoadConfig loads configuration from a TOML file.
 func LoadConfig(path string) (*Config, error) {
-	cfg := DefaultConfig()
-	_, err := toml.DecodeFile(path, cfg)
+	cfg, err := DefaultConfig()
+	if err != nil {
+		return nil, fmt.Errorf("failed to create default config: %w", err)
+	}
+
+	_, err = toml.DecodeFile(path, cfg)
 	if err != nil {
 		return nil, fmt.Errorf("failed to decode config file %s: %w", path, err)
 	}

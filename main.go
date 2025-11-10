@@ -82,7 +82,11 @@ Examples:
 				os.Exit(1)
 			}
 
-			defaultCfg := config.DefaultConfig()
+			defaultCfg, err := config.DefaultConfig()
+			if err != nil {
+				fmt.Printf("Error creating default config: %v\n", err)
+				os.Exit(1)
+			}
 			err = config.SaveConfig(configFilePath, defaultCfg)
 			if err != nil {
 				fmt.Printf("Error saving default config: %v\n", err)

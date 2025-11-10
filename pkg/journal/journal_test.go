@@ -15,6 +15,7 @@ import (
 	"github.com/clobrano/LogBook/pkg/template"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 // ErrorReader is a mock io.Reader that always returns an error.
@@ -30,7 +31,8 @@ func TestCreateDailyJournalFile(t *testing.T) {
 	// Setup a temporary journal directory
 	tmpDir := t.TempDir()
 
-	cfg := config.DefaultConfig()
+	cfg, err := config.DefaultConfig()
+	require.NoError(t, err)
 	cfg.JournalDir = tmpDir
 	cfg.DailyFileName = "{{.Date | formatDate \"2006-01-02\"}}.md"
 
@@ -53,21 +55,24 @@ func TestCreateDailyJournalFile(t *testing.T) {
 	assert.FileExists(t, expectedFilePath)
 
 	// Test case 3: Invalid configuration (empty JournalDir)
-	invalidCfg := config.DefaultConfig()
+	invalidCfg, err := config.DefaultConfig()
+	require.NoError(t, err)
 	invalidCfg.JournalDir = "" // Set to empty to trigger validation error
 	filePath, _, err = CreateDailyJournalFile(invalidCfg, date, nil, nil)
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "invalid configuration: JournalDir cannot be empty")
 
 	// Test case 4: Non-absolute JournalDir
-	invalidCfg = config.DefaultConfig()
+	invalidCfg, err = config.DefaultConfig()
+	require.NoError(t, err)
 	invalidCfg.JournalDir = "relative/path" // Set to relative path to trigger validation error
 	filePath, _, err = CreateDailyJournalFile(invalidCfg, date, nil, nil)
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "JournalDir must be an absolute path")
 
 	// Test case 5: Non-existent JournalDir - should create the directory and return no error
-	invalidCfg = config.DefaultConfig()
+	invalidCfg, err = config.DefaultConfig()
+	require.NoError(t, err)
 	invalidCfg.JournalDir = filepath.Join(tmpDir, "nonexistent")
 	filePath, _, err = CreateDailyJournalFile(invalidCfg, date, nil, nil)
 	assert.NoError(t, err)
@@ -83,7 +88,8 @@ func TestCreateDailyJournalFile(t *testing.T) {
 	assert.FileExists(t, expectedFilePath)
 
 	// Test case 7: Daily template is applied
-	cfg = config.DefaultConfig()
+	cfg, err = config.DefaultConfig()
+	require.NoError(t, err)
 	cfg.JournalDir = tmpDir
 	cfg.DailyTemplate = "# {{.Date | formatDate \"2006-01-02\"}} - My Daily Log\n\n[SUMMARY_PLACEHOLDER]\n\n## LOG\n"
 	    date = time.Date(2025, time.October, 26, 0, 0, 0, 0, time.UTC)
@@ -113,7 +119,8 @@ func TestCreateDailyJournalFile(t *testing.T) {
 func TestAppendToLog(t *testing.T) {
 	// Setup a temporary journal directory and file
 	tmpDir := t.TempDir()
-	cfg := config.DefaultConfig()
+	cfg, err := config.DefaultConfig()
+	require.NoError(t, err)
 	cfg.JournalDir = tmpDir
 	cfg.DailyTemplate = "# {{.Date | formatDate \"2006-01-02\"}} - My Daily Log\n\n[SUMMARY_PLACEHOLDER]\n\n## LOG\n"
 	date := time.Date(2025, time.October, 26, 0, 0, 0, 0, time.UTC)
@@ -168,7 +175,8 @@ func TestAppendToLog(t *testing.T) {
 	aiPrompt := "Summarize this."
 
 	// Use a copy of cfg for this test case to avoid modifying the original
-	aiCfg := config.DefaultConfig()
+	aiCfg, err := config.DefaultConfig()
+	require.NoError(t, err)
 	aiCfg.AISummarizer = mockAI // Set the AI summarizer in the config
 
 	err = GenerateSummaryIfMissing(summaryFilePath, aiCfg, mockAI, aiPrompt, strings.NewReader(""))
@@ -199,7 +207,8 @@ func TestAppendToLog(t *testing.T) {
 	assert.NoError(t, err)
 
 	mockAIWithError := &ai.MockAISummarizer{Summary: "", Err: errors.New("AI error during summary generation")}
-	aiCfgWithError := config.DefaultConfig()
+	aiCfgWithError, err := config.DefaultConfig()
+	require.NoError(t, err)
 	aiCfgWithError.AISummarizer = mockAIWithError
 
 	err = GenerateSummaryIfMissing(summaryFilePath, aiCfgWithError, mockAIWithError, aiPrompt, strings.NewReader(""))
@@ -215,7 +224,8 @@ func TestAppendToLog(t *testing.T) {
 	manualSummaryInput := "This is a manual summary.\n"
 
 	// No AI summarizer in config
-	noAICfg := config.DefaultConfig()
+	noAICfg, err := config.DefaultConfig()
+	require.NoError(t, err)
 	noAICfg.AISummarizer = nil
 
 	err = GenerateSummaryIfMissing(summaryFilePath, noAICfg, nil, aiPrompt, strings.NewReader(manualSummaryInput))
@@ -258,7 +268,8 @@ func TestAppendToLog(t *testing.T) {
 	assert.NoError(t, err)
 
 	mockAI = &ai.MockAISummarizer{Summary: "AI generated summary without one-line note.", Err: nil}
-	aiCfg = config.DefaultConfig()
+	aiCfg, err = config.DefaultConfig()
+	require.NoError(t, err)
 	aiCfg.AISummarizer = mockAI
 
 	err = GenerateSummaryIfMissing(summaryFilePath, aiCfg, mockAI, aiPrompt, strings.NewReader(""))
@@ -277,7 +288,8 @@ func TestListJournalFilesByPeriod(t *testing.T) {
 	// Setup a temporary journal directory
 	tmpDir := t.TempDir()
 
-	cfg := config.DefaultConfig()
+	cfg, err := config.DefaultConfig()
+	require.NoError(t, err)
 	cfg.JournalDir = tmpDir
 	cfg.DailyFileName = "{{.Date | formatDate \"2006-01-02\"}}.md"
 
@@ -342,14 +354,16 @@ func TestListJournalFilesByPeriod(t *testing.T) {
 	assert.ElementsMatch(t, expectedFiles, files)
 
 	// Test case 6: Invalid configuration (empty JournalDir)
-	invalidCfg := config.DefaultConfig()
+	invalidCfg, err := config.DefaultConfig()
+	require.NoError(t, err)
 	invalidCfg.JournalDir = ""
 	files, err = ListJournalFilesByPeriod(invalidCfg, startDate, endDate)
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "invalid configuration: JournalDir cannot be empty")
 
 	// Test case 7: Non-absolute JournalDir
-	invalidCfg = config.DefaultConfig()
+	invalidCfg, err = config.DefaultConfig()
+	require.NoError(t, err)
 	invalidCfg.JournalDir = "./relative/path"
 	files, err = ListJournalFilesByPeriod(invalidCfg, startDate, endDate)
 	assert.Error(t, err)
@@ -357,7 +371,8 @@ func TestListJournalFilesByPeriod(t *testing.T) {
 
 	// Test case 8: Some files exist, some don't
 	partialExistTmpDir := t.TempDir()
-	partialExistCfg := config.DefaultConfig()
+	partialExistCfg, err := config.DefaultConfig()
+	require.NoError(t, err)
 	partialExistCfg.JournalDir = partialExistTmpDir
 	partialExistCfg.DailyFileName = "{{.Date | formatDate \"2006-01-02\"}}.md"
 
@@ -448,7 +463,8 @@ func TestEmbedOneLineNotes(t *testing.T) {
 	// Setup a temporary journal directory
 	tmpDir := t.TempDir()
 
-	cfg := config.DefaultConfig()
+	cfg, err := config.DefaultConfig()
+	require.NoError(t, err)
 	cfg.JournalDir = tmpDir
 	cfg.DailyFileName = "{{.Date | formatDate \"2006-01-02\"}}.md"
 	cfg.DailyTemplate = "# {{.Date | formatDate \"Jan 02 2006 Monday\"}}\n\n{{.Summary}}\n\n## LOG\n"
@@ -471,7 +487,7 @@ func TestEmbedOneLineNotes(t *testing.T) {
 		"2_years_ago":  "Summary from 2 years ago.",
 	}
 
-	err := oneline.EmbedOneLineNotes(filePath, summaries)
+	err = oneline.EmbedOneLineNotes(filePath, summaries)
 	assert.NoError(t, err)
 
 	// Read the updated file content

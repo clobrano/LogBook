@@ -2,16 +2,33 @@ package config
 
 import (
 	"os"
+	"os/user"
 	"path/filepath"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
-func TestDefaultConfig(t *testing.T) {
-	cfg := DefaultConfig()
+// testDefaultConfig is a helper function that creates a default config for testing
+// and fails the test if there's an error
+func testDefaultConfig(t *testing.T) *Config {
+	cfg, err := DefaultConfig()
+	require.NoError(t, err, "DefaultConfig should not return an error")
+	return cfg
+}
 
-	assert.Equal(t, filepath.Join(os.Getenv("HOME"), ".logbook", "journal"), cfg.JournalDir)
+func TestDefaultConfig(t *testing.T) {
+	cfg, err := DefaultConfig()
+	assert.NoError(t, err)
+
+	homeDir := os.Getenv("HOME")
+	if homeDir == "" {
+		usr, _ := user.Current()
+		homeDir = usr.HomeDir
+	}
+
+	assert.Equal(t, filepath.Join(homeDir, ".logbook", "journal"), cfg.JournalDir)
 	assert.Equal(t, "{{.Date | formatDate \"2006-01-02\"}}.md", cfg.DailyFileName)
 	assert.Equal(t, "# {{.Date | formatDate \"Jan 02 2006 Monday\"}}\n<!-- add today summary below this line. If missing, the AI will generate one for you according to configuration file -->\n\n# One-line note\n\n# LOG\n\n", cfg.DailyTemplate)
 	assert.Equal(t, "{{.Time | formatTime \"15:04\"}} {{.Entry}}", cfg.LogEntryTemplate)
@@ -62,7 +79,7 @@ func TestSaveConfig(t *testing.T) {
 	// Create a temporary config file
 	tmpfile := filepath.Join(t.TempDir(), "config.toml")
 
-	cfg := DefaultConfig()
+	cfg := testDefaultConfig(t)
 	cfg.JournalDir = "/path/to/journal"
 	cfg.AIEnabled = true
 
@@ -89,34 +106,34 @@ one_line_template = "{{.Date | formatDate \"2006-01-02\"}}: {{.Summary}}"
 
 	// Test case: Invalid path for saving
 	invalidPath := "/nonexistent/read-only/dir/config.toml"
-	cfg = DefaultConfig()
+	cfg = testDefaultConfig(t)
 	err = SaveConfig(invalidPath, cfg)
 	assert.ErrorContains(t, err, "failed to create config file")
 }
 
 func TestConfigValidate(t *testing.T) {
 	// Test valid config
-	cfg := DefaultConfig()
+	cfg := testDefaultConfig(t)
 	assert.NoError(t, cfg.Validate())
 
 	// Test empty JournalDir
 	cfg.JournalDir = ""
 	assert.ErrorContains(t, cfg.Validate(), "JournalDir cannot be empty")
-	cfg = DefaultConfig() // Reset
+	cfg = testDefaultConfig(t) // Reset
 
 	// Test empty DailyFileName
 	cfg.DailyFileName = ""
 	assert.ErrorContains(t, cfg.Validate(), "DailyFileName cannot be empty")
-	cfg = DefaultConfig() // Reset
+	cfg = testDefaultConfig(t) // Reset
 
 	// Test empty DailyTemplate
 	cfg.DailyTemplate = ""
 	assert.ErrorContains(t, cfg.Validate(), "DailyTemplate cannot be empty")
-	cfg = DefaultConfig() // Reset
+	cfg = testDefaultConfig(t) // Reset
 
 	// Test AI enabled with empty AIPrompt
 	cfg.AIEnabled = true
 	cfg.AIPrompt = ""
 	assert.ErrorContains(t, cfg.Validate(), "AIPrompt cannot be empty if AI is enabled")
-	cfg = DefaultConfig() // Reset
+	cfg = testDefaultConfig(t) // Reset
 }
