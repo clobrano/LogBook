@@ -3,7 +3,6 @@ package main
 import (
 	"fmt"
 	"os"
-	"os/user"
 	"path/filepath"
 	"strconv"
 	"strings"
@@ -15,13 +14,13 @@ import (
 )
 
 func main() {
-	usr, err := user.Current()
+	homeDir, err := os.UserHomeDir()
 	if err != nil {
-		fmt.Printf("Error getting current user: %v\n", err)
+		fmt.Printf("Error getting user home directory: %v\n", err)
 		os.Exit(1)
 	}
 
-	configDir := filepath.Join(usr.HomeDir, ".config", "logbook")
+	configDir := filepath.Join(homeDir, ".config", "logbook")
 	configFilePath := filepath.Join(configDir, "config.toml")
 
 	var cfg *config.Config // Declare cfg here, initialize later if needed
@@ -57,13 +56,13 @@ Examples:
   logbook review year 2025`)
 			os.Exit(0)
 		case "config":
-			usr, err := user.Current()
+			homeDir, err := os.UserHomeDir()
 			if err != nil {
-				fmt.Printf("Error getting current user: %v\n", err)
+				fmt.Printf("Error getting user home directory: %v\n", err)
 				os.Exit(1)
 			}
 
-			configDir := filepath.Join(usr.HomeDir, ".config", "logbook")
+			configDir := filepath.Join(homeDir, ".config", "logbook")
 			configFilePath := filepath.Join(configDir, "config.toml")
 
 			_, err = os.Stat(configFilePath)
