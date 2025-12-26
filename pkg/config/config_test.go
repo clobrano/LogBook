@@ -11,7 +11,13 @@ import (
 func TestDefaultConfig(t *testing.T) {
 	cfg := DefaultConfig()
 
-	assert.Equal(t, filepath.Join(os.Getenv("HOME"), ".logbook", "journal"), cfg.JournalDir)
+	// Get expected home directory using the same method as DefaultConfig
+	homeDir, err := os.UserHomeDir()
+	if err != nil {
+		homeDir = os.Getenv("HOME")
+	}
+
+	assert.Equal(t, filepath.Join(homeDir, ".logbook", "journal"), cfg.JournalDir)
 	assert.Equal(t, "{{.Date | formatDate \"2006-01-02\"}}.md", cfg.DailyFileName)
 	assert.Equal(t, "# {{.Date | formatDate \"Jan 02 2006 Monday\"}}\n<!-- add today summary below this line. If missing, the AI will generate one for you according to configuration file -->\n\n# One-line note\n\n# LOG\n\n", cfg.DailyTemplate)
 	assert.Equal(t, "{{.Time | formatTime \"15:04\"}} {{.Entry}}", cfg.LogEntryTemplate)

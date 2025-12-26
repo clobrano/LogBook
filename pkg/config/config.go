@@ -27,8 +27,14 @@ type Config struct {
 
 // DefaultConfig returns a new Config with default values.
 func DefaultConfig() *Config {
+	homeDir, err := os.UserHomeDir()
+	if err != nil {
+		// Fallback to HOME env var if UserHomeDir fails
+		homeDir = os.Getenv("HOME")
+	}
+
 	return &Config{
-		JournalDir:        filepath.Join(os.Getenv("HOME"), ".logbook", "journal"),
+		JournalDir:        filepath.Join(homeDir, ".logbook", "journal"),
 		DailyFileName:     "{{.Date | formatDate \"2006-01-02\"}}.md",
 		DailyTemplate:     "# {{.Date | formatDate \"Jan 02 2006 Monday\"}}\n<!-- add today summary below this line. If missing, the AI will generate one for you according to configuration file -->\n\n# One-line note\n\n# LOG\n\n",
 		LogEntryTemplate:  "{{.Time | formatTime \"15:04\"}} {{.Entry}}",
