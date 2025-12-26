@@ -50,6 +50,11 @@ func DefaultConfig() *Config {
 
 // LoadConfig loads configuration from a TOML file.
 func LoadConfig(path string) (*Config, error) {
+	// Check if config file exists
+	if _, err := os.Stat(path); os.IsNotExist(err) {
+		return nil, fmt.Errorf("configuration file not found at %s\nPlease run 'logbook config' to create a default configuration file", path)
+	}
+
 	cfg := DefaultConfig()
 	_, err := toml.DecodeFile(path, cfg)
 	if err != nil {

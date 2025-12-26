@@ -57,6 +57,12 @@ func TestLoadConfig(t *testing.T) {
 	assert.Equal(t, expectedConfig.AIPrompt, loadedConfig.AIPrompt)
 	assert.Equal(t, expectedConfig.OneLineTemplate, loadedConfig.OneLineTemplate)
 
+	// Test case: Config file not found
+	nonexistentFile := filepath.Join(t.TempDir(), "nonexistent.toml")
+	_, err = LoadConfig(nonexistentFile)
+	assert.ErrorContains(t, err, "configuration file not found")
+	assert.ErrorContains(t, err, "Please run 'logbook config'")
+
 	// Test case: Malformed TOML file
 	malformedFile := filepath.Join(t.TempDir(), "malformed.toml")
 	os.WriteFile(malformedFile, []byte("invalid toml = ["), 0644)
