@@ -55,6 +55,7 @@ Examples:
   logbook review week 38 2025
   logbook review month September 2025
   logbook review year 2025`)
+			os.Exit(0)
 		case "config":
 			usr, err := user.Current()
 			if err != nil {
