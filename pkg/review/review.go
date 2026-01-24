@@ -70,7 +70,7 @@ func ReviewWeek(cfg *config.Config, week int, year int, summarizer ai.AISummariz
 		}
 	}
 
-	reviewFilePath := filepath.Join(cfg.JournalDir, fmt.Sprintf("review_week_%d_%d.md", year, week))
+	reviewFilePath := filepath.Join(cfg.JournalDir, fmt.Sprintf("review_week_%d_%02d.md", year, week))
 	if err := os.MkdirAll(filepath.Dir(reviewFilePath), 0755); err != nil {
 		return "", fmt.Errorf("failed to create directory for weekly review file: %w", err)
 	}
@@ -128,7 +128,7 @@ func ReviewMonth(cfg *config.Config, month string, year int, summarizer ai.AISum
 		}
 	}
 
-	reviewFilePath := filepath.Join(cfg.JournalDir, fmt.Sprintf("review_month_%d_%d.md", monthNum, year))
+	reviewFilePath := filepath.Join(cfg.JournalDir, fmt.Sprintf("review_month_%02d_%d.md", monthNum, year))
 	if err := os.MkdirAll(filepath.Dir(reviewFilePath), 0755); err != nil {
 		return "", fmt.Errorf("failed to create directory for monthly review file: %w", err)
 	}
