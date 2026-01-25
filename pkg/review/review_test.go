@@ -68,7 +68,7 @@ func TestReviewWeek(t *testing.T) {
 	expectedSuccessMessage := fmt.Sprintf("Weekly review generated at: %s", filepath.Join(tmpDir, "review_week_2025_38.md"))
 	assert.Equal(t, expectedSuccessMessage, result)
 
-	reviewFilePath := filepath.Join(tmpDir, fmt.Sprintf("review_week_%d_%d.md", year, week))
+	reviewFilePath := filepath.Join(tmpDir, "review_week_2025_38.md")
 	assert.FileExists(t, reviewFilePath)
 
 	reviewContent, err := os.ReadFile(reviewFilePath)
@@ -133,7 +133,7 @@ func TestReviewWeek(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Contains(t, result, fmt.Sprintf("Weekly review generated at: %s", filepath.Join(noEntriesTmpDir, "review_week_2025_38.md")))
 
-	reviewFilePath = filepath.Join(noEntriesTmpDir, fmt.Sprintf("review_week_%d_%d.md", year, week))
+	reviewFilePath = filepath.Join(noEntriesTmpDir, "review_week_2025_38.md")
 	assert.FileExists(t, reviewFilePath)
 
 	reviewContent, err = os.ReadFile(reviewFilePath)
@@ -145,9 +145,24 @@ func TestReviewWeek(t *testing.T) {
 	assert.Equal(t, expectedNoSummaryReviewContent, string(reviewContent))
 
 	// Test case 4: Error during manual summary input
+	// Use a config WITH journal entries so GenerateSummaryIfMissing actually tries to read manual summary
+	errorTmpDir := t.TempDir()
+	errorCfg := config.DefaultConfig()
+	errorCfg.JournalDir = errorTmpDir
+	errorCfg.DailyFileName = cfg.DailyFileName
+	errorCfg.DailyTemplate = cfg.DailyTemplate
+	errorCfg.AISummarizer = nil
+
+	// Create at least one journal entry so review has content to summarize
+	createDummyJournalFile(time.Date(2025, time.September, 15, 0, 0, 0, 0, time.UTC), "Summary for Sep 15.")
+	// Copy the file to errorTmpDir
+	srcFile := filepath.Join(tmpDir, "2025-09-15.md")
+	dstFile := filepath.Join(errorTmpDir, "2025-09-15.md")
+	content, _ := os.ReadFile(srcFile)
+	os.WriteFile(dstFile, content, 0644)
+
 	errorReader := &ErrorReader{Err: errors.New("read error during manual summary")}
-	os.Remove(reviewFilePath) // Clean up previous review file
-	_, err = ReviewWeek(noEntriesCfg, week, year, nil, errorReader)
+	_, err = ReviewWeek(errorCfg, week, year, nil, errorReader)
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "failed to generate summary for weekly review: failed to read manual summary: read error during manual summary")
 }
@@ -189,10 +204,10 @@ func TestReviewMonth(t *testing.T) {
 
 	result, err := ReviewMonth(aiCfg, month, year, aiSummarizer, strings.NewReader(""))
 	assert.NoError(t, err)
-	expectedSuccessMessage := fmt.Sprintf("Monthly review generated at: %s", filepath.Join(tmpDir, "review_month_September_2025.md"))
+	expectedSuccessMessage := fmt.Sprintf("Monthly review generated at: %s", filepath.Join(tmpDir, "review_month_09_2025.md"))
 	assert.Equal(t, expectedSuccessMessage, result)
 
-	reviewFilePath := filepath.Join(tmpDir, fmt.Sprintf("review_month_%s_%d.md", month, year))
+	reviewFilePath := filepath.Join(tmpDir, "review_month_09_2025.md")
 	assert.FileExists(t, reviewFilePath)
 
 	reviewContent, err := os.ReadFile(reviewFilePath)
@@ -222,7 +237,7 @@ func TestReviewMonth(t *testing.T) {
 	os.Remove(reviewFilePath)
 	result, err = ReviewMonth(manualCfg, month, year, nil, manualReader)
 	assert.NoError(t, err)
-	expectedSuccessMessage = fmt.Sprintf("Monthly review generated at: %s", filepath.Join(tmpDir, "review_month_September_2025.md"))
+	expectedSuccessMessage = fmt.Sprintf("Monthly review generated at: %s", filepath.Join(tmpDir, "review_month_09_2025.md"))
 	assert.Equal(t, expectedSuccessMessage, result)
 
 	reviewContent, err = os.ReadFile(reviewFilePath)
@@ -250,9 +265,9 @@ func TestReviewMonth(t *testing.T) {
 	os.Remove(reviewFilePath) // Clean up previous review file
 	result, err = ReviewMonth(noEntriesCfg, month, year, nil, strings.NewReader("\n")) // Simulate skipping manual summary
 	assert.NoError(t, err)
-	assert.Contains(t, result, fmt.Sprintf("Monthly review generated at: %s", filepath.Join(noEntriesTmpDir, "review_month_September_2025.md")))
+	assert.Contains(t, result, fmt.Sprintf("Monthly review generated at: %s", filepath.Join(noEntriesTmpDir, "review_month_09_2025.md")))
 
-	reviewFilePath = filepath.Join(noEntriesTmpDir, fmt.Sprintf("review_month_%s_%d.md", month, year))
+	reviewFilePath = filepath.Join(noEntriesTmpDir, "review_month_09_2025.md")
 	assert.FileExists(t, reviewFilePath)
 
 	reviewContent, err = os.ReadFile(reviewFilePath)
@@ -264,9 +279,24 @@ func TestReviewMonth(t *testing.T) {
 	assert.Equal(t, expectedNoSummaryReviewContent, string(reviewContent))
 
 	// Test case 4: Error during manual summary input
+	// Use a config WITH journal entries so GenerateSummaryIfMissing actually tries to read manual summary
+	errorTmpDir := t.TempDir()
+	errorCfg := config.DefaultConfig()
+	errorCfg.JournalDir = errorTmpDir
+	errorCfg.DailyFileName = cfg.DailyFileName
+	errorCfg.DailyTemplate = cfg.DailyTemplate
+	errorCfg.AISummarizer = nil
+
+	// Create at least one journal entry so review has content to summarize
+	createDummyJournalFile(time.Date(2025, time.September, 1, 0, 0, 0, 0, time.UTC), "Summary for Sep 01.")
+	// Copy the file to errorTmpDir
+	srcFile := filepath.Join(tmpDir, "2025-09-01.md")
+	dstFile := filepath.Join(errorTmpDir, "2025-09-01.md")
+	content, _ := os.ReadFile(srcFile)
+	os.WriteFile(dstFile, content, 0644)
+
 	errorReader := &ErrorReader{Err: errors.New("read error during manual summary")}
-	os.Remove(reviewFilePath) // Clean up previous review file
-	_, err = ReviewMonth(noEntriesCfg, month, year, nil, errorReader)
+	_, err = ReviewMonth(errorCfg, month, year, nil, errorReader)
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "failed to generate summary for monthly review: failed to read manual summary: read error during manual summary")
 }
