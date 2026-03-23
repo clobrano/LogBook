@@ -54,3 +54,42 @@ func TestGetPastSummaries(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, expectedSummaries, actualSummaries)
 }
+
+func TestGetPastSummariesWithFrontmatter(t *testing.T) {
+	tmpDir := t.TempDir()
+
+	cfg := config.DefaultConfig()
+	cfg.JournalDir = tmpDir
+	cfg.DailyFileName = "{{.Date | formatDate \"2006-01-02\"}}.md"
+
+	// Helper to create journal files with YAML frontmatter
+	createFrontmatterFile := func(date time.Time, summary string) {
+		data := template.TemplateData{Date: date}
+		fileName, _ := template.Render(cfg.DailyFileName, data)
+		filePath := filepath.Join(tmpDir, fileName)
+		content := "---\ncreated: " + date.Format("2006-01-02") + "\n---\n# " + date.Format("Jan 02 2006 Monday") + "\n" + summary + "\n\n# LOG\n"
+		os.WriteFile(filePath, []byte(content), 0644)
+	}
+
+	targetDate := time.Date(2025, time.September, 20, 0, 0, 0, 0, time.UTC)
+
+	// Create files with frontmatter
+	createFrontmatterFile(targetDate.AddDate(0, 0, -7), "Summary for 1 week ago.")
+	createFrontmatterFile(targetDate.AddDate(0, -1, 0), "Summary for 1 month ago.")
+	createFrontmatterFile(targetDate.AddDate(0, -6, 0), "Summary for 6 months ago.")
+	createFrontmatterFile(targetDate.AddDate(-1, 0, 0), "Summary for 1 year ago.")
+	createFrontmatterFile(targetDate.AddDate(-2, 0, 0), "Summary for 2 years ago.")
+
+	expectedSummaries := map[string]string{
+		"2025-09-13": "Summary for 1 week ago.",
+		"2025-08-20": "Summary for 1 month ago.",
+		"2025-03-20": "Summary for 6 months ago.",
+		"2024-09-20": "Summary for 1 year ago.",
+		"2023-09-20": "Summary for 2 years ago.",
+		"2022-09-20": "missing", // 3 years ago, no file exists
+	}
+
+	actualSummaries, err := GetPastSummaries(cfg, targetDate)
+	assert.NoError(t, err)
+	assert.Equal(t, expectedSummaries, actualSummaries)
+}
