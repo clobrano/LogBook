@@ -444,6 +444,114 @@ func TestExtractSummary(t *testing.T) {
 	assert.Equal(t, "Summary after title.", summary)
 }
 
+func TestExtractSummaryWithFrontmatter(t *testing.T) {
+	tmpDir := t.TempDir()
+
+	// Test case 1: File with YAML frontmatter and summary
+	filePath1 := filepath.Join(tmpDir, "fm1.md")
+	content1 := "---\ncreated: 2026-03-23\ntags: [daily]\n---\n# Title\nSummary of the file.\n\n## LOG\nEntry 1"
+	err := os.WriteFile(filePath1, []byte(content1), 0644)
+	assert.NoError(t, err)
+
+	summary, err := ExtractSummary(filePath1)
+	assert.NoError(t, err)
+	assert.Equal(t, "Summary of the file.", summary)
+
+	// Test case 2: Frontmatter with HTML comment and summary
+	filePath2 := filepath.Join(tmpDir, "fm2.md")
+	content2 := "---\ncreated: 2026-03-23\n---\n# Title\n<!-- comment -->\nSummary after comment.\n\n## LOG\nEntry 1"
+	err = os.WriteFile(filePath2, []byte(content2), 0644)
+	assert.NoError(t, err)
+
+	summary, err = ExtractSummary(filePath2)
+	assert.NoError(t, err)
+	assert.Equal(t, "Summary after comment.", summary)
+
+	// Test case 3: Frontmatter without summary (only sections)
+	filePath3 := filepath.Join(tmpDir, "fm3.md")
+	content3 := "---\ncreated: 2026-03-23\n---\n# Title\n\n# LOG\nEntry 1"
+	err = os.WriteFile(filePath3, []byte(content3), 0644)
+	assert.NoError(t, err)
+
+	summary, err = ExtractSummary(filePath3)
+	assert.NoError(t, err)
+	assert.Empty(t, summary)
+
+	// Test case 4: No frontmatter still works
+	filePath4 := filepath.Join(tmpDir, "fm4.md")
+	content4 := "# Title\nSummary here.\n\n## LOG\nEntry 1"
+	err = os.WriteFile(filePath4, []byte(content4), 0644)
+	assert.NoError(t, err)
+
+	summary, err = ExtractSummary(filePath4)
+	assert.NoError(t, err)
+	assert.Equal(t, "Summary here.", summary)
+}
+
+func TestGenerateSummaryIfMissingWithFrontmatter(t *testing.T) {
+	tmpDir := t.TempDir()
+
+	// Test: Frontmatter present, no summary - AI should generate one
+	filePath := filepath.Join(tmpDir, "fm_summary.md")
+	content := "---\ncreated: 2026-03-23\n---\n# Daily Log\n<!-- add summary -->\n\n## LOG\n14:30 Did some work\n"
+	err := os.WriteFile(filePath, []byte(content), 0644)
+	assert.NoError(t, err)
+
+	mockAI := &ai.MockAISummarizer{Summary: "AI generated summary.", Err: nil}
+	aiCfg := config.DefaultConfig()
+	aiCfg.AISummarizer = mockAI
+
+	err = GenerateSummaryIfMissing(filePath, aiCfg, mockAI, "Summarize", strings.NewReader(""))
+	assert.NoError(t, err)
+
+	resultContent, err := os.ReadFile(filePath)
+	assert.NoError(t, err)
+	result := string(resultContent)
+
+	// Frontmatter should be preserved
+	assert.True(t, strings.HasPrefix(result, "---\ncreated: 2026-03-23\n---\n"))
+	// Summary should be inserted after title
+	assert.Contains(t, result, "# Daily Log\n<!-- add summary -->\nAI generated summary.\n")
+	// LOG section should still be present
+	assert.Contains(t, result, "## LOG")
+
+	// Test: Frontmatter present, summary already exists - should not overwrite
+	filePath2 := filepath.Join(tmpDir, "fm_existing.md")
+	content2 := "---\ncreated: 2026-03-23\n---\n# Daily Log\nExisting summary.\n\n## LOG\n"
+	err = os.WriteFile(filePath2, []byte(content2), 0644)
+	assert.NoError(t, err)
+
+	err = GenerateSummaryIfMissing(filePath2, aiCfg, mockAI, "Summarize", strings.NewReader(""))
+	assert.NoError(t, err)
+
+	resultContent2, err := os.ReadFile(filePath2)
+	assert.NoError(t, err)
+	assert.Equal(t, content2, string(resultContent2)) // Content unchanged
+}
+
+func TestAppendToLogWithFrontmatter(t *testing.T) {
+	tmpDir := t.TempDir()
+	cfg := config.DefaultConfig()
+	cfg.JournalDir = tmpDir
+
+	// Create file with frontmatter
+	filePath := filepath.Join(tmpDir, "fm_log.md")
+	content := "---\ncreated: 2026-03-23\n---\n# Daily Log\nSummary.\n\n# LOG\n\n"
+	err := os.WriteFile(filePath, []byte(content), 0644)
+	assert.NoError(t, err)
+
+	appendDate := time.Date(2026, time.March, 23, 14, 30, 0, 0, time.UTC)
+	err = AppendToLog(cfg, filePath, "Test entry", appendDate)
+	assert.NoError(t, err)
+
+	resultContent, err := os.ReadFile(filePath)
+	assert.NoError(t, err)
+	result := string(resultContent)
+
+	assert.True(t, strings.HasPrefix(result, "---\ncreated: 2026-03-23\n---\n"))
+	assert.Contains(t, result, "14:30 Test entry")
+}
+
 func TestEmbedOneLineNotes(t *testing.T) {
 	// Setup a temporary journal directory
 	tmpDir := t.TempDir()

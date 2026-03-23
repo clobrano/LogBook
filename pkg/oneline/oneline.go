@@ -123,17 +123,25 @@ func saveSummaryToFile(filePath string, summary string) error {
 		return fmt.Errorf("file %s is empty", filePath)
 	}
 
-	// Build new content with summary inserted after title and optional HTML comment
+	// Build new content with summary inserted after frontmatter, title, and optional HTML comment
 	var newContentBuilder strings.Builder
-	newContentBuilder.WriteString(lines[0]) // Title
+
+	// Write frontmatter if present
+	fmEnd := skipFrontmatter(lines)
+	for i := 0; i < fmEnd; i++ {
+		newContentBuilder.WriteString(lines[i])
+		newContentBuilder.WriteString("\n")
+	}
+
+	newContentBuilder.WriteString(lines[fmEnd]) // Title
 	newContentBuilder.WriteString("\n")
 
-	// Check if line 1 is HTML comment, if so include it
-	startIdx := 1
-	if len(lines) > 1 && strings.HasPrefix(strings.TrimSpace(lines[1]), "<!--") {
-		newContentBuilder.WriteString(lines[1])
+	// Check if next line after title is HTML comment, if so include it
+	startIdx := fmEnd + 1
+	if startIdx < len(lines) && strings.HasPrefix(strings.TrimSpace(lines[startIdx]), "<!--") {
+		newContentBuilder.WriteString(lines[startIdx])
 		newContentBuilder.WriteString("\n")
-		startIdx = 2
+		startIdx++
 	}
 
 	// Insert the summary
@@ -160,6 +168,20 @@ func saveSummaryToFile(filePath string, summary string) error {
 	return nil
 }
 
+// skipFrontmatter returns the index of the first line after YAML frontmatter.
+// If no frontmatter is present, returns 0.
+func skipFrontmatter(lines []string) int {
+	if len(lines) == 0 || strings.TrimSpace(lines[0]) != "---" {
+		return 0
+	}
+	for i := 1; i < len(lines); i++ {
+		if strings.TrimSpace(lines[i]) == "---" {
+			return i + 1
+		}
+	}
+	return 0 // Unclosed frontmatter, treat as no frontmatter
+}
+
 // extractSummary reads a journal file and returns its first paragraph as the summary.
 func extractSummary(filePath string) (string, error) {
 	content, err := os.ReadFile(filePath)
@@ -172,11 +194,15 @@ func extractSummary(filePath string) (string, error) {
 
 	lines := strings.Split(string(content), "\n")
 
+	// Skip YAML frontmatter if present
+	startLine := skipFrontmatter(lines)
+
 	// The first paragraph after the title and before the "LOG" chapter is considered the summary.
+	// Skip the title line (first line after frontmatter)
 	var summaryLines []string
 	readingSummary := false
 
-	for i := 1; i < len(lines); i++ {
+	for i := startLine + 1; i < len(lines); i++ {
 		trimmedLine := strings.TrimSpace(lines[i])
 
 		if strings.HasPrefix(trimmedLine, "# LOG") || strings.HasPrefix(trimmedLine, "# One-line note") {

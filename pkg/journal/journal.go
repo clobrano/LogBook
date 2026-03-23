@@ -157,13 +157,16 @@ func GenerateSummaryIfMissing(filePath string, cfg *config.Config, summarizer ai
 
 	lines := strings.Split(string(content), "\n")
 
+	// Skip YAML frontmatter if present
+	fmEnd := skipFrontmatter(lines)
+
 	// Check if summary already exists:
-	// Line 0: # Title
-	// Line 1: might be HTML comment (<!-- ... -->)
+	// First line after frontmatter: # Title
+	// Next line: might be HTML comment (<!-- ... -->)
 	// Summary exists if there's non-empty, non-comment, non-header content after title
 
 	isSummaryMissing := true
-	for i := 1; i < len(lines); i++ {
+	for i := fmEnd + 1; i < len(lines); i++ {
 		trimmed := strings.TrimSpace(lines[i])
 		if trimmed == "" {
 			continue // Skip empty lines
@@ -186,8 +189,8 @@ func GenerateSummaryIfMissing(filePath string, cfg *config.Config, summarizer ai
 	var finalSummary string
 
 	if summarizer != nil {
-		// Extract content to summarize (skip title, exclude "One-line note" section)
-		contentToSummarize := strings.Join(lines[1:], "\n")
+		// Extract content to summarize (skip frontmatter and title, exclude "One-line note" section)
+		contentToSummarize := strings.Join(lines[fmEnd+1:], "\n")
 		oneLineNoteSection := "## One-line note"
 		idx := strings.Index(contentToSummarize, oneLineNoteSection)
 		if idx != -1 {
@@ -217,17 +220,24 @@ func GenerateSummaryIfMissing(filePath string, cfg *config.Config, summarizer ai
 		}
 	}
 
-	// Insert summary after title and HTML comment (if present)
+	// Insert summary after frontmatter, title, and HTML comment (if present)
 	var newContentBuilder strings.Builder
-	newContentBuilder.WriteString(lines[0]) // Title
+
+	// Write frontmatter if present
+	for i := 0; i < fmEnd; i++ {
+		newContentBuilder.WriteString(lines[i])
+		newContentBuilder.WriteString("\n")
+	}
+
+	newContentBuilder.WriteString(lines[fmEnd]) // Title
 	newContentBuilder.WriteString("\n")
 
-	// Check if line 1 is HTML comment, if so include it
-	startIdx := 1
-	if len(lines) > 1 && strings.HasPrefix(strings.TrimSpace(lines[1]), "<!--") {
-		newContentBuilder.WriteString(lines[1])
+	// Check if next line after title is HTML comment, if so include it
+	startIdx := fmEnd + 1
+	if startIdx < len(lines) && strings.HasPrefix(strings.TrimSpace(lines[startIdx]), "<!--") {
+		newContentBuilder.WriteString(lines[startIdx])
 		newContentBuilder.WriteString("\n")
-		startIdx = 2
+		startIdx++
 	}
 
 	newContentBuilder.WriteString(strings.TrimSpace(finalSummary))
@@ -285,6 +295,21 @@ func ListJournalFilesByPeriod(cfg *config.Config, startDate, endDate time.Time) 
 	return files, nil
 }
 
+// skipFrontmatter returns the index of the first line after YAML frontmatter.
+// If no frontmatter is present, returns 0.
+// Frontmatter is delimited by "---" at the start and end.
+func skipFrontmatter(lines []string) int {
+	if len(lines) == 0 || strings.TrimSpace(lines[0]) != "---" {
+		return 0
+	}
+	for i := 1; i < len(lines); i++ {
+		if strings.TrimSpace(lines[i]) == "---" {
+			return i + 1
+		}
+	}
+	return 0 // Unclosed frontmatter, treat as no frontmatter
+}
+
 // ExtractSummary reads a journal file and returns its first paragraph as the summary.
 func ExtractSummary(filePath string) (string, error) {
 	content, err := os.ReadFile(filePath)
@@ -297,11 +322,15 @@ func ExtractSummary(filePath string) (string, error) {
 
 	lines := strings.Split(string(content), "\n")
 
+	// Skip YAML frontmatter if present
+	startLine := skipFrontmatter(lines)
+
 	// The first paragraph after the title and before the "LOG" chapter is considered the summary.
+	// Skip the title line (first line after frontmatter)
 	var summaryLines []string
 	readingSummary := false
 
-	for i := 1; i < len(lines); i++ {
+	for i := startLine + 1; i < len(lines); i++ {
 		trimmedLine := strings.TrimSpace(lines[i])
 
 		if strings.HasPrefix(trimmedLine, "# LOG") || strings.HasPrefix(trimmedLine, "# One-line note") {
