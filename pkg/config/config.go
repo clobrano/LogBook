@@ -35,16 +35,16 @@ func DefaultConfig() *Config {
 
 	return &Config{
 		JournalDir:        filepath.Join(homeDir, ".logbook", "journal"),
-		DailyFileName:     "{{.Date | formatDate \"2006-01-02\"}}.md",
-		DailyTemplate:     "# {{.Date | formatDate \"Jan 02 2006 Monday\"}}\n<!-- add today summary below this line. If missing, the AI will generate one for you according to configuration file -->\n\n# One-line note\n\n# LOG\n\n",
-		LogEntryTemplate:  "{{.Time | formatTime \"15:04\"}} {{.Entry}}",
+		DailyFileName:     "{{.Date | formatDate \"YYYY-MM-DD\"}}.md",
+		DailyTemplate:     "# {{.Date | formatDate \"MMM DD YYYY dddd\"}}\n<!-- add today summary below this line. If missing, the AI will generate one for you according to configuration file -->\n\n# One-line note\n\n# LOG\n\n",
+		LogEntryTemplate:  "{{.Time | formatTime \"HH:mm\"}} {{.Entry}}",
 		AIEnabled:         false,
 		AICommand:         "", // Example: "gemini --prompt '{PROMPT} {TEXT}'" or "claude --text '{TEXT}' --instructions '{PROMPT}'"
 		AIPrompt:          "Write a summary of the note at the given file. Use 1st person and a simple language. Use 200 characters or less",
 		ReviewWeekPrompt:  "Write a summary of the weekly review using the same Language. Use 1st person and a simple language. Use 200 characters or less.",
 		ReviewMonthPrompt: "Write a summary of the monthly review. Use 1st person and a simple language. Use 200 characters or less.",
 		ReviewYearPrompt:  "Write a summary of the yearly review. Use 1st person and a simple language. Use 200 characters or less.",
-		OneLineTemplate:   "{{.Date | formatDate \"2006-01-02\"}}: {{.Summary}}",
+		OneLineTemplate:   "{{.Date | formatDate \"YYYY-MM-DD\"}}: {{.Summary}}",
 	}
 }
 

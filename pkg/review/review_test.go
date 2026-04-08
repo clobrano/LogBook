@@ -30,8 +30,8 @@ func TestReviewWeek(t *testing.T) {
 
 	cfg := config.DefaultConfig()
 	cfg.JournalDir = tmpDir
-	cfg.DailyFileName = "{{.Date | formatDate \"2006-01-02\"}}.md"
-	cfg.DailyTemplate = "# {{.Date | formatDate \"Jan 02 2006 Monday\"}}\n\n{{.Summary}}\n\n## LOG\n"
+	cfg.DailyFileName = "{{.Date | formatDate \"YYYY-MM-DD\"}}.md"
+	cfg.DailyTemplate = "# {{.Date | formatDate \"MMM DD YYYY dddd\"}}\n\n{{.Summary}}\n\n## LOG\n"
 
 	// Create dummy journal files for a specific week (e.g., week 38, 2025)
 	createDummyJournalFile := func(date time.Time, summary string) string {
@@ -173,8 +173,8 @@ func TestReviewMonth(t *testing.T) {
 
 	cfg := config.DefaultConfig()
 	cfg.JournalDir = tmpDir
-	cfg.DailyFileName = "{{.Date | formatDate \"2006-01-02\"}}" + ".md"
-	cfg.DailyTemplate = "# {{.Date | formatDate \"Jan 02 2006 Monday\"}}\n\n{{.Summary}}\n\n## LOG\n"
+	cfg.DailyFileName = "{{.Date | formatDate \"YYYY-MM-DD\"}}" + ".md"
+	cfg.DailyTemplate = "# {{.Date | formatDate \"MMM DD YYYY dddd\"}}\n\n{{.Summary}}\n\n## LOG\n"
 
 	// Create dummy journal files for a specific month (e.g., September 2025)
 	createDummyJournalFile := func(date time.Time, summary string) string {
@@ -308,8 +308,8 @@ func TestReviewYear(t *testing.T) {
 
 	cfg := config.DefaultConfig()
 	cfg.JournalDir = tmpDir
-	cfg.DailyFileName = "{{.Date | formatDate \"2006-01-02\"}}" + ".md"
-	cfg.DailyTemplate = "# {{.Date | formatDate \"Jan 02 2006 Monday\"}}\n\n{{.Summary}}\n\n## LOG\n"
+	cfg.DailyFileName = "{{.Date | formatDate \"YYYY-MM-DD\"}}" + ".md"
+	cfg.DailyTemplate = "# {{.Date | formatDate \"MMM DD YYYY dddd\"}}\n\n{{.Summary}}\n\n## LOG\n"
 
 	// Create dummy journal files for a specific year (e.g., 2025)
 	createDummyJournalFile := func(date time.Time, summary string) string {

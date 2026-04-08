@@ -18,15 +18,15 @@ func TestDefaultConfig(t *testing.T) {
 	}
 
 	assert.Equal(t, filepath.Join(homeDir, ".logbook", "journal"), cfg.JournalDir)
-	assert.Equal(t, "{{.Date | formatDate \"2006-01-02\"}}.md", cfg.DailyFileName)
-	assert.Equal(t, "# {{.Date | formatDate \"Jan 02 2006 Monday\"}}\n<!-- add today summary below this line. If missing, the AI will generate one for you according to configuration file -->\n\n# One-line note\n\n# LOG\n\n", cfg.DailyTemplate)
-	assert.Equal(t, "{{.Time | formatTime \"15:04\"}} {{.Entry}}", cfg.LogEntryTemplate)
+	assert.Equal(t, "{{.Date | formatDate \"YYYY-MM-DD\"}}.md", cfg.DailyFileName)
+	assert.Equal(t, "# {{.Date | formatDate \"MMM DD YYYY dddd\"}}\n<!-- add today summary below this line. If missing, the AI will generate one for you according to configuration file -->\n\n# One-line note\n\n# LOG\n\n", cfg.DailyTemplate)
+	assert.Equal(t, "{{.Time | formatTime \"HH:mm\"}} {{.Entry}}", cfg.LogEntryTemplate)
 	assert.False(t, cfg.AIEnabled)
 	assert.Equal(t, "Write a summary of the note at the given file. Use 1st person and a simple language. Use 200 characters or less", cfg.AIPrompt)
 	assert.Equal(t, "Write a summary of the weekly review using the same Language. Use 1st person and a simple language. Use 200 characters or less.", cfg.ReviewWeekPrompt)
 	assert.Equal(t, "Write a summary of the monthly review. Use 1st person and a simple language. Use 200 characters or less.", cfg.ReviewMonthPrompt)
 	assert.Equal(t, "Write a summary of the yearly review. Use 1st person and a simple language. Use 200 characters or less.", cfg.ReviewYearPrompt)
-	assert.Equal(t, "{{.Date | formatDate \"2006-01-02\"}}: {{.Summary}}", cfg.OneLineTemplate)
+	assert.Equal(t, "{{.Date | formatDate \"YYYY-MM-DD\"}}: {{.Summary}}", cfg.OneLineTemplate)
 }
 
 func TestLoadConfig(t *testing.T) {
@@ -36,10 +36,10 @@ func TestLoadConfig(t *testing.T) {
 	expectedConfig := &Config{
 		JournalDir:      "/tmp/myjournal",
 		DailyFileName:   "DD-MM-YYYY.md",
-		DailyTemplate:   "## {{.Date | formatDate \"Monday, January 2, 2006\"}}\n",
+		DailyTemplate:   "## {{.Date | formatDate \"dddd, MMMM D, YYYY\"}}\n",
 		AIEnabled:       true,
 		AIPrompt:        "Summarize this entry.",
-		OneLineTemplate: "{{.Date | formatDate \"01/02\"}} - {{.Summary}}",
+		OneLineTemplate: "{{.Date | formatDate \"MM/DD\"}} - {{.Summary}}",
 	}
 
 	err := SaveConfig(tmpfile, expectedConfig)
@@ -80,16 +80,16 @@ func TestSaveConfig(t *testing.T) {
 	assert.NoError(t, err)
 
 	expectedContent := `journal_dir = "/path/to/journal"
-daily_file_name = "{{.Date | formatDate \"2006-01-02\"}}.md"
-daily_template = "# {{.Date | formatDate \"Jan 02 2006 Monday\"}}\n<!-- add today summary below this line. If missing, the AI will generate one for you according to configuration file -->\n\n# One-line note\n\n# LOG\n\n"
-log_entry_template = "{{.Time | formatTime \"15:04\"}} {{.Entry}}"
+daily_file_name = "{{.Date | formatDate \"YYYY-MM-DD\"}}.md"
+daily_template = "# {{.Date | formatDate \"MMM DD YYYY dddd\"}}\n<!-- add today summary below this line. If missing, the AI will generate one for you according to configuration file -->\n\n# One-line note\n\n# LOG\n\n"
+log_entry_template = "{{.Time | formatTime \"HH:mm\"}} {{.Entry}}"
 ai_enabled = true
 ai_command = ""
 ai_prompt = "Write a summary of the note at the given file. Use 1st person and a simple language. Use 200 characters or less"
 review_week_prompt = "Write a summary of the weekly review using the same Language. Use 1st person and a simple language. Use 200 characters or less."
 review_month_prompt = "Write a summary of the monthly review. Use 1st person and a simple language. Use 200 characters or less."
 review_year_prompt = "Write a summary of the yearly review. Use 1st person and a simple language. Use 200 characters or less."
-one_line_template = "{{.Date | formatDate \"2006-01-02\"}}: {{.Summary}}"
+one_line_template = "{{.Date | formatDate \"YYYY-MM-DD\"}}: {{.Summary}}"
 `
 	assert.Equal(t, expectedContent, string(content))
 
