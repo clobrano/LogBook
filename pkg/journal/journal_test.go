@@ -488,6 +488,67 @@ func TestExtractSummaryWithFrontmatter(t *testing.T) {
 	assert.Equal(t, "Summary here.", summary)
 }
 
+// TestExtractSummaryRobustEdgeCases verifies that ExtractSummary never picks
+// up YAML metadata as the summary, even when frontmatter is malformed or the
+// file layout has unexpected whitespace.
+func TestExtractSummaryRobustEdgeCases(t *testing.T) {
+	tmpDir := t.TempDir()
+
+	type tc struct {
+		name    string
+		content string
+		want    string
+	}
+	cases := []tc{
+		{
+			name:    "user reported scenario - blank line between frontmatter and title",
+			content: "---\nsome metadata\n---\n\n# 2024-04-12\n<summary>\n",
+			want:    "<summary>",
+		},
+		{
+			name:    "leading blank line before frontmatter",
+			content: "\n---\nkey: val\n---\n# 2024-01-01\nMy summary\n\n# LOG\n",
+			want:    "My summary",
+		},
+		{
+			name:    "unclosed frontmatter must not leak metadata",
+			content: "---\nfoo: bar\nbaz: qux\n# 2024-01-01\nMy summary\n",
+			want:    "My summary",
+		},
+		{
+			name:    "obsidian multiline tag list",
+			content: "---\ntags:\n  - daily\n  - work\ncreated: 2024\n---\n# 2024-01-01\nMy summary\n\n# LOG\n",
+			want:    "My summary",
+		},
+		{
+			name:    "CRLF line endings",
+			content: "---\r\nkey: val\r\n---\r\n# 2024-04-12\r\nMy summary\r\n\r\n# LOG\r\n",
+			want:    "My summary",
+		},
+		{
+			name:    "frontmatter only - no title",
+			content: "---\nfoo: bar\n---\n",
+			want:    "",
+		},
+		{
+			name:    "no real title, only LOG section",
+			content: "---\nfoo: bar\n---\n# LOG\n10:00 entry\n",
+			want:    "",
+		},
+	}
+
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			path := filepath.Join(tmpDir, strings.ReplaceAll(c.name, " ", "_")+".md")
+			err := os.WriteFile(path, []byte(c.content), 0644)
+			assert.NoError(t, err)
+			got, err := ExtractSummary(path)
+			assert.NoError(t, err)
+			assert.Equal(t, c.want, got)
+		})
+	}
+}
+
 func TestGenerateSummaryIfMissingWithFrontmatter(t *testing.T) {
 	tmpDir := t.TempDir()
 
