@@ -3,6 +3,7 @@ package oneline
 import (
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 	"time"
 
@@ -53,6 +54,58 @@ func TestGetPastSummaries(t *testing.T) {
 	actualSummaries, err := GetPastSummaries(cfg, targetDate)
 	assert.NoError(t, err)
 	assert.Equal(t, expectedSummaries, actualSummaries)
+}
+
+// TestExtractSummaryRobustEdgeCases verifies that the oneline summary
+// extractor never returns YAML metadata as the summary, even when the
+// frontmatter is malformed or the layout has unexpected whitespace.
+func TestExtractSummaryRobustEdgeCases(t *testing.T) {
+	tmpDir := t.TempDir()
+
+	type tc struct {
+		name    string
+		content string
+		want    string
+	}
+	cases := []tc{
+		{
+			// User-reported bug: blank line between closing "---" and title
+			name:    "blank line between frontmatter and title",
+			content: "---\nsome metadata\n---\n\n# 2024-04-12\n<summary>\n",
+			want:    "<summary>",
+		},
+		{
+			name:    "leading blank line before frontmatter",
+			content: "\n---\nkey: val\n---\n# 2024\nMy summary\n\n# LOG\n",
+			want:    "My summary",
+		},
+		{
+			name:    "unclosed frontmatter must not leak metadata",
+			content: "---\nfoo: bar\nbaz: qux\n# 2024\nMy summary\n",
+			want:    "My summary",
+		},
+		{
+			name:    "obsidian multiline tags",
+			content: "---\ntags:\n  - daily\n  - work\n---\n# 2024\nMy summary\n\n# LOG\n",
+			want:    "My summary",
+		},
+		{
+			name:    "frontmatter only, no title",
+			content: "---\nfoo: bar\n---\n",
+			want:    "",
+		},
+	}
+
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			path := filepath.Join(tmpDir, strings.ReplaceAll(c.name, " ", "_")+".md")
+			err := os.WriteFile(path, []byte(c.content), 0644)
+			assert.NoError(t, err)
+			got, err := extractSummary(path)
+			assert.NoError(t, err)
+			assert.Equal(t, c.want, got)
+		})
+	}
 }
 
 func TestGetPastSummariesWithFrontmatter(t *testing.T) {

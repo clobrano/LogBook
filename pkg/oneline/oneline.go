@@ -182,6 +182,70 @@ func skipFrontmatter(lines []string) int {
 	return 0 // Unclosed frontmatter, treat as no frontmatter
 }
 
+// isSectionHeader reports whether a trimmed line is a markdown heading
+// at any level whose first word matches the given section name (e.g. "LOG"
+// matches both "# LOG" and "## LOG ...").
+func isSectionHeader(trimmed, name string) bool {
+	if !strings.HasPrefix(trimmed, "#") {
+		return false
+	}
+	rest := strings.TrimLeft(trimmed, "#")
+	if rest == trimmed {
+		return false
+	}
+	rest = strings.TrimLeft(rest, " \t")
+	return rest == name || strings.HasPrefix(rest, name+" ") || strings.HasPrefix(rest, name+"\t")
+}
+
+// isLogOrOneLineSection reports whether a trimmed line marks the LOG or
+// One-line note section, regardless of heading level.
+func isLogOrOneLineSection(trimmed string) bool {
+	return isSectionHeader(trimmed, "LOG") || isSectionHeader(trimmed, "One-line note")
+}
+
+// findTitleLine returns the index of the title line: the first markdown
+// heading line that isn't a known section marker ("LOG" / "One-line note").
+// Leading blank lines and YAML frontmatter (delimited by "---") are skipped.
+// If frontmatter is unclosed or malformed, the scan continues line-by-line
+// until a heading is found, so metadata can never be mistaken for the title.
+// Returns -1 if no title is found.
+func findTitleLine(lines []string) int {
+	i := 0
+	// Skip leading blank lines
+	for i < len(lines) && strings.TrimSpace(lines[i]) == "" {
+		i++
+	}
+	// Skip well-formed YAML frontmatter
+	if i < len(lines) && strings.TrimSpace(lines[i]) == "---" {
+		for j := i + 1; j < len(lines); j++ {
+			if strings.TrimSpace(lines[j]) == "---" {
+				i = j + 1
+				break
+			}
+		}
+	}
+	// Find the first markdown heading line that is the title.
+	// If frontmatter was unclosed, this scan will safely walk past metadata
+	// (which uses YAML "key: value" lines, not markdown headings).
+	for ; i < len(lines); i++ {
+		trimmed := strings.TrimSpace(lines[i])
+		if !strings.HasPrefix(trimmed, "#") {
+			continue
+		}
+		// Section markers are not the title.
+		if isLogOrOneLineSection(trimmed) {
+			return -1
+		}
+		// Must be an actual heading ("# Something"), not a hashtag or "#word".
+		rest := strings.TrimLeft(trimmed, "#")
+		if !strings.HasPrefix(rest, " ") && !strings.HasPrefix(rest, "\t") {
+			continue
+		}
+		return i
+	}
+	return -1
+}
+
 // extractSummary reads a journal file and returns its first paragraph as the summary.
 func extractSummary(filePath string) (string, error) {
 	content, err := os.ReadFile(filePath)
@@ -194,18 +258,20 @@ func extractSummary(filePath string) (string, error) {
 
 	lines := strings.Split(string(content), "\n")
 
-	// Skip YAML frontmatter if present
-	startLine := skipFrontmatter(lines)
+	// Locate the title line robustly (skips frontmatter and leading blanks).
+	titleIdx := findTitleLine(lines)
+	if titleIdx < 0 {
+		return "", nil
+	}
 
 	// The first paragraph after the title and before the "LOG" chapter is considered the summary.
-	// Skip the title line (first line after frontmatter)
 	var summaryLines []string
 	readingSummary := false
 
-	for i := startLine + 1; i < len(lines); i++ {
+	for i := titleIdx + 1; i < len(lines); i++ {
 		trimmedLine := strings.TrimSpace(lines[i])
 
-		if strings.HasPrefix(trimmedLine, "# LOG") || strings.HasPrefix(trimmedLine, "# One-line note") {
+		if isLogOrOneLineSection(trimmedLine) {
 			break // Reached the LOG or One-line note section, stop reading summary
 		}
 
