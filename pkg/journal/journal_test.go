@@ -32,7 +32,7 @@ func TestCreateDailyJournalFile(t *testing.T) {
 
 	cfg := config.DefaultConfig()
 	cfg.JournalDir = tmpDir
-	cfg.DailyFileName = "{{.Date | formatDate \"2006-01-02\"}}.md"
+	cfg.DailyFileName = "{{.Date | formatDate \"YYYY-MM-DD\"}}.md"
 
 	// Test case 1: File does not exist, should create successfully
 
@@ -75,7 +75,7 @@ func TestCreateDailyJournalFile(t *testing.T) {
 	assert.FileExists(t, filePath)
 
 	// Test case 6: Custom file naming convention
-	cfg.DailyFileName = `{{.Date | formatDate "02"}}-{{.Date | formatDate "01"}}-{{.Date | formatDate "2006"}}.log`
+	cfg.DailyFileName = `{{.Date | formatDate "DD"}}-{{.Date | formatDate "MM"}}-{{.Date | formatDate "YYYY"}}.log`
 	date = time.Date(2025, time.December, 25, 0, 0, 0, 0, time.UTC)
 		filePath, _, err = CreateDailyJournalFile(cfg, date, nil, nil)
 	    	assert.NoError(t, err)
@@ -85,7 +85,7 @@ func TestCreateDailyJournalFile(t *testing.T) {
 	// Test case 7: Daily template is applied
 	cfg = config.DefaultConfig()
 	cfg.JournalDir = tmpDir
-	cfg.DailyTemplate = "# {{.Date | formatDate \"2006-01-02\"}} - My Daily Log\n\n[SUMMARY_PLACEHOLDER]\n\n## LOG\n"
+	cfg.DailyTemplate = "# {{.Date | formatDate \"YYYY-MM-DD\"}} - My Daily Log\n\n[SUMMARY_PLACEHOLDER]\n\n## LOG\n"
 	    date = time.Date(2025, time.October, 26, 0, 0, 0, 0, time.UTC)
 	    		filePath, _, err = CreateDailyJournalFile(cfg, date, nil, nil)
 	    	    	assert.NoError(t, err)
@@ -115,7 +115,7 @@ func TestAppendToLog(t *testing.T) {
 	tmpDir := t.TempDir()
 	cfg := config.DefaultConfig()
 	cfg.JournalDir = tmpDir
-	cfg.DailyTemplate = "# {{.Date | formatDate \"2006-01-02\"}} - My Daily Log\n\n[SUMMARY_PLACEHOLDER]\n\n## LOG\n"
+	cfg.DailyTemplate = "# {{.Date | formatDate \"YYYY-MM-DD\"}} - My Daily Log\n\n[SUMMARY_PLACEHOLDER]\n\n## LOG\n"
 	date := time.Date(2025, time.October, 26, 0, 0, 0, 0, time.UTC)
 
 	filePath, _, err := CreateDailyJournalFile(cfg, date, nil, nil)
@@ -279,7 +279,7 @@ func TestListJournalFilesByPeriod(t *testing.T) {
 
 	cfg := config.DefaultConfig()
 	cfg.JournalDir = tmpDir
-	cfg.DailyFileName = "{{.Date | formatDate \"2006-01-02\"}}.md"
+	cfg.DailyFileName = "{{.Date | formatDate \"YYYY-MM-DD\"}}.md"
 
 	// Create some dummy journal files
 	createDummyFile := func(date time.Time) string {
@@ -619,8 +619,8 @@ func TestEmbedOneLineNotes(t *testing.T) {
 
 	cfg := config.DefaultConfig()
 	cfg.JournalDir = tmpDir
-	cfg.DailyFileName = "{{.Date | formatDate \"2006-01-02\"}}.md"
-	cfg.DailyTemplate = "# {{.Date | formatDate \"Jan 02 2006 Monday\"}}\n\n{{.Summary}}\n\n## LOG\n"
+	cfg.DailyFileName = "{{.Date | formatDate \"YYYY-MM-DD\"}}.md"
+	cfg.DailyTemplate = "# {{.Date | formatDate \"MMM DD YYYY dddd\"}}\n\n{{.Summary}}\n\n## LOG\n"
 
 	// Create a dummy daily journal file
 	date := time.Date(2025, time.September, 20, 0, 0, 0, 0, time.UTC)

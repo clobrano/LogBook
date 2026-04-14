@@ -128,6 +128,9 @@ pkg/
 **Template Engine (`pkg/template/`)**
 - Uses Go's `text/template` package
 - Custom functions: `formatDate` for date formatting, `formatTime` for time formatting
+- Date format strings use **Obsidian/Moment.js tokens** (e.g., `YYYY-MM-DD`, `HH:mm`) instead of Go's reference-time format
+- Supported tokens: `YYYY`, `YY`, `MMMM`, `MMM`, `MM`, `M`, `DD`, `D`, `dddd`, `ddd`, `HH`, `hh`, `h`, `mm`, `m`, `ss`, `s`, `A`, `a`
+- Use `[text]` brackets to escape literal text in format strings
 - Template data includes: `Date`, `Time`, `Summary`, `Entry` fields
 - Used for rendering file names, daily templates, and log entries
 
@@ -140,7 +143,8 @@ pkg/
    - Reviews rely on summaries from daily files
 
 2. **Date Handling**:
-   - Daily file names use template: `{{.Date | formatDate "2006-01-02"}}.md`
+   - Date format strings use Obsidian/Moment.js tokens (e.g., `YYYY-MM-DD` instead of Go's `2006-01-02`)
+   - Daily file names use template: `{{.Date | formatDate "YYYY-MM-DD"}}.md`
    - Reviews use ISO week calculation for week boundaries
    - One-line notes show summaries from: 1 week ago, 1 month ago, 6 months ago, and all past years (dynamically)
 
@@ -162,14 +166,14 @@ All PRD requirements have been implemented:
 2. **One-Line Notes Integration** (Req #17-20): ✅ Fully integrated into `CreateDailyJournalFile` - automatically embeds historical summaries
 3. **One-Line Past Years** (Req #18): ✅ Dynamically checks all past years (up to 3 years back) until no entries found
 4. **One-Line Periods**: ✅ Includes 1 week ago, 1 month ago, 6 months ago, and all past years
-5. **LOG Entry Template** (Req #5): ✅ Now configurable via `log_entry_template` config setting (default: `{{.Time | formatTime "15:04"}} {{.Entry}}`)
+5. **LOG Entry Template** (Req #5): ✅ Now configurable via `log_entry_template` config setting (default: `{{.Time | formatTime "HH:mm"}} {{.Entry}}`)
 
 ## Configuration File Location
 
 The config file is always at `~/.config/logbook/config.toml` (XDG config directory). The default config includes:
 - `journal_dir`: `~/.logbook/journal`
 - `daily_template`: Includes "## One-line note" section at the end
-- `log_entry_template`: `{{.Time | formatTime "15:04"}} {{.Entry}}` (configurable timestamp and entry format)
+- `log_entry_template`: `{{.Time | formatTime "HH:mm"}} {{.Entry}}` (configurable timestamp and entry format)
 - `ai_enabled`: `false` (must be explicitly enabled)
 - `ai_command`: Command template with `{PROMPT}` and `{TEXT}` placeholders
   - Example: `gemini --prompt '{PROMPT} {TEXT}'`

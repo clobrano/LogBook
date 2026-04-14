@@ -18,8 +18,8 @@ func TestGetPastSummaries(t *testing.T) {
 
 	cfg := config.DefaultConfig()
 	cfg.JournalDir = tmpDir
-	cfg.DailyFileName = "{{.Date | formatDate \"2006-01-02\"}}.md"
-	cfg.DailyTemplate = "# {{.Date | formatDate \"Jan 02 2006 Monday\"}}\n\n{{.Summary}}\n\n## LOG\n"
+	cfg.DailyFileName = "{{.Date | formatDate \"YYYY-MM-DD\"}}.md"
+	cfg.DailyTemplate = "# {{.Date | formatDate \"MMM DD YYYY dddd\"}}\n\n{{.Summary}}\n\n## LOG\n"
 
 	// Helper to create dummy journal files
 	createDummyJournalFile := func(date time.Time, summary string) string {
@@ -113,7 +113,7 @@ func TestGetPastSummariesWithFrontmatter(t *testing.T) {
 
 	cfg := config.DefaultConfig()
 	cfg.JournalDir = tmpDir
-	cfg.DailyFileName = "{{.Date | formatDate \"2006-01-02\"}}.md"
+	cfg.DailyFileName = "{{.Date | formatDate \"YYYY-MM-DD\"}}.md"
 
 	// Helper to create journal files with YAML frontmatter
 	createFrontmatterFile := func(date time.Time, summary string) {
