@@ -9,7 +9,6 @@ import (
 	"time"
 
 	"github.com/clobrano/LogBook/pkg/config"
-	"github.com/clobrano/LogBook/pkg/journal"
 )
 
 // Generate scans all daily journal files and produces one markdown file per year
@@ -55,17 +54,14 @@ func Generate(cfg *config.Config, year int) (string, error) {
 		}
 
 		filePath := filepath.Join(journalDir, name)
-		summary, err := journal.ExtractSummary(filePath)
-		if err != nil {
-			continue
-		}
-		if summary == "" {
+		content, err := extractFirstSection(filePath)
+		if err != nil || content == "" {
 			continue
 		}
 
 		byMonth[parsed.Month()] = append(byMonth[parsed.Month()], dailyEntry{
 			date:    parsed,
-			summary: summary,
+			summary: content,
 		})
 	}
 
@@ -155,4 +151,85 @@ func GenerateAll(cfg *config.Config) ([]string, error) {
 	}
 
 	return paths, nil
+}
+
+// extractFirstSection reads a journal file and returns all content between
+// the first markdown heading and the next heading. YAML frontmatter and
+// HTML comments are skipped.
+func extractFirstSection(filePath string) (string, error) {
+	data, err := os.ReadFile(filePath)
+	if err != nil {
+		if os.IsNotExist(err) {
+			return "", nil
+		}
+		return "", err
+	}
+
+	lines := strings.Split(string(data), "\n")
+	i := 0
+
+	// Skip YAML frontmatter
+	if i < len(lines) && strings.TrimSpace(lines[i]) == "---" {
+		for j := i + 1; j < len(lines); j++ {
+			if strings.TrimSpace(lines[j]) == "---" {
+				i = j + 1
+				break
+			}
+		}
+	}
+
+	// Find the first markdown heading
+	titleIdx := -1
+	for ; i < len(lines); i++ {
+		trimmed := strings.TrimSpace(lines[i])
+		if strings.HasPrefix(trimmed, "#") {
+			rest := strings.TrimLeft(trimmed, "#")
+			if strings.HasPrefix(rest, " ") || strings.HasPrefix(rest, "\t") {
+				titleIdx = i
+				break
+			}
+		}
+	}
+	if titleIdx < 0 {
+		return "", nil
+	}
+
+	// Collect all lines after the title until the next heading
+	var contentLines []string
+	for i := titleIdx + 1; i < len(lines); i++ {
+		trimmed := strings.TrimSpace(lines[i])
+		if strings.HasPrefix(trimmed, "#") {
+			rest := strings.TrimLeft(trimmed, "#")
+			if strings.HasPrefix(rest, " ") || strings.HasPrefix(rest, "\t") {
+				break
+			}
+		}
+		if strings.HasPrefix(trimmed, "<!--") {
+			continue
+		}
+		contentLines = append(contentLines, trimmed)
+	}
+
+	// Trim leading and trailing empty lines, then join with spaces
+	for len(contentLines) > 0 && contentLines[0] == "" {
+		contentLines = contentLines[1:]
+	}
+	for len(contentLines) > 0 && contentLines[len(contentLines)-1] == "" {
+		contentLines = contentLines[:len(contentLines)-1]
+	}
+
+	if len(contentLines) == 0 {
+		return "", nil
+	}
+
+	// Join non-empty lines with spaces, preserving paragraph breaks as " "
+	var parts []string
+	for _, l := range contentLines {
+		if l == "" {
+			continue
+		}
+		parts = append(parts, l)
+	}
+
+	return strings.Join(parts, " "), nil
 }

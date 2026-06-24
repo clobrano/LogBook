@@ -124,6 +124,60 @@ func TestGenerateMultipleYears(t *testing.T) {
 	assert.NotContains(t, string(content), "2025")
 }
 
+func TestExtractFirstSectionMultipleParagraphs(t *testing.T) {
+	tmpDir := t.TempDir()
+	cfg := newTestConfig(tmpDir)
+
+	createJournalFile(t, tmpDir, "2025-04-01.md",
+		"# Apr 01 2025 Tuesday\nFirst paragraph of the day.\n\nSecond paragraph with more details.\n\n# LOG\n10:00 Did stuff\n")
+
+	path, err := Generate(cfg, 2025)
+	assert.NoError(t, err)
+
+	content, err := os.ReadFile(path)
+	assert.NoError(t, err)
+
+	assert.Contains(t, string(content), "First paragraph of the day. Second paragraph with more details.")
+}
+
+func TestExtractFirstSectionWithFrontmatter(t *testing.T) {
+	tmpDir := t.TempDir()
+	cfg := newTestConfig(tmpDir)
+
+	createJournalFile(t, tmpDir, "2021-12-02.md", `---
+date:  2021-w48
+family:  green
+---
+
+[nav](link.md)
+
+# Notes
+> Winning is nice if you don't lose your integrity in the process.
+
+First real paragraph here.
+
+Second paragraph with more thoughts.
+
+
+# Todos
+- [x] test something
+- [ ] do something else
+`)
+
+	path, err := Generate(cfg, 2021)
+	assert.NoError(t, err)
+
+	content, err := os.ReadFile(path)
+	assert.NoError(t, err)
+
+	s := string(content)
+	assert.Contains(t, s, "Winning is nice")
+	assert.Contains(t, s, "First real paragraph here.")
+	assert.Contains(t, s, "Second paragraph with more thoughts.")
+	assert.NotContains(t, s, "test something")
+	assert.NotContains(t, s, "Todos")
+}
+
 func TestGenerateAll(t *testing.T) {
 	tmpDir := t.TempDir()
 	cfg := newTestConfig(tmpDir)
