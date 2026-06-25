@@ -43,12 +43,12 @@ func TestGenerate(t *testing.T) {
 
 # Jan
 
-* 2025-01-10 Fri | Started the new project today.
-* 2025-01-15 Wed | Made progress on the feature.
+* 2025-01-10 Fri| Started the new project today.
+* 2025-01-15 Wed| Made progress on the feature.
 
 # Mar
 
-* 2025-03-05 Wed | Fixed a critical bug in production.
+* 2025-03-05 Wed| Fixed a critical bug in production.
 `
 	assert.Equal(t, expected, string(content))
 }
