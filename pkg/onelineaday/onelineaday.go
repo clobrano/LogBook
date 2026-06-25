@@ -85,7 +85,7 @@ func Generate(cfg *config.Config, year int) (string, error) {
 		b.WriteString(fmt.Sprintf("\n# %s\n\n", month.String()[:3]))
 
 		for _, e := range entries {
-			b.WriteString(fmt.Sprintf("* %s %s: %s\n", e.date.Format("2006-01-02"), e.date.Format("Mon"), e.summary))
+			b.WriteString(fmt.Sprintf("* %s %s | %s\n", e.date.Format("2006-01-02"), e.date.Format("Mon"), e.summary))
 		}
 	}
 
