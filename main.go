@@ -10,6 +10,7 @@ import (
 
 	"github.com/clobrano/LogBook/pkg/config"
 	"github.com/clobrano/LogBook/pkg/journal"
+	"github.com/clobrano/LogBook/pkg/onelineaday"
 	"github.com/clobrano/LogBook/pkg/review"
 )
 
@@ -46,6 +47,8 @@ Available Commands:
             logbook review week [week number] [year] (defaults to current week/year)
             logbook review month [month name] [year] (defaults to current month/year)
             logbook review year [year] (defaults to current year)
+  one-line-a-day  Generate a yearly summary file with one line per daily entry.
+          Usage: logbook one-line-a-day [year] (defaults to all years)
 
 Examples:
   logbook config
@@ -198,6 +201,35 @@ Examples:
 			default:
 				fmt.Println("Unknown review subcommand. Use 'logbook review help' for more information.")
 				os.Exit(1)
+			}
+		case "one-line-a-day":
+			cfg, err = config.LoadConfig(configFilePath)
+			if err != nil {
+				fmt.Printf("Error loading configuration: %v\n", err)
+				os.Exit(1)
+			}
+
+			if len(os.Args) >= 3 {
+				year, err := strconv.Atoi(os.Args[2])
+				if err != nil {
+					fmt.Println("Invalid year:", os.Args[2])
+					os.Exit(1)
+				}
+				path, err := onelineaday.Generate(cfg, year)
+				if err != nil {
+					fmt.Printf("Error generating one-line-a-day: %v\n", err)
+					os.Exit(1)
+				}
+				fmt.Printf("One-line-a-day file generated: %s\n", path)
+			} else {
+				paths, err := onelineaday.GenerateAll(cfg)
+				if err != nil {
+					fmt.Printf("Error generating one-line-a-day: %v\n", err)
+					os.Exit(1)
+				}
+				for _, p := range paths {
+					fmt.Printf("One-line-a-day file generated: %s\n", p)
+				}
 			}
 		case "log":
 			fallthrough
